@@ -13,6 +13,8 @@ Environment=PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers
 Environment=PYTHONUNBUFFERED=1
 # skip stores marked blocks_cloud in config.yaml (they refuse Azure IPs)
 Environment=PSN_ON_VM=1
+# dashboard (Caddy proxies HTTPS to it; achyuthus.dev/psn is a Vercel rewrite)
+Environment=PSN_WEB_PORT=8080
 ExecStart=/opt/psn-watch/.venv/bin/python /opt/psn-watch/watch.py
 Restart=always
 RestartSec=10

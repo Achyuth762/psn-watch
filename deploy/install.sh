@@ -33,7 +33,7 @@ echo "    at commit $(git -C "$APP" log -1 --format='%h %s')"
 
 echo "==> alert settings (/etc/psn-watch.env)"
 if [ ! -f /etc/psn-watch.env ]; then
-  printf 'NTFY_TOPIC=%s\n# TELEGRAM_BOT_TOKEN=\n# TELEGRAM_CHAT_ID=\n# HEALTHCHECK_URL=\n' "$TOPIC" > /etc/psn-watch.env
+  printf 'NTFY_TOPIC=%s\n# PSN_DOMAIN=\n# TELEGRAM_BOT_TOKEN=\n# TELEGRAM_CHAT_ID=\n# HEALTHCHECK_URL=\n' "$TOPIC" > /etc/psn-watch.env
 elif [ -n "$TOPIC" ]; then
   grep -q '^NTFY_TOPIC=' /etc/psn-watch.env && sed -i "s|^NTFY_TOPIC=.*|NTFY_TOPIC=$TOPIC|" /etc/psn-watch.env \
     || echo "NTFY_TOPIC=$TOPIC" >> /etc/psn-watch.env
@@ -67,6 +67,34 @@ cat > /usr/local/sbin/psn-update <<S
 git -C $APP fetch -q origin $BRANCH && git -C $APP reset -q --hard origin/$BRANCH && exec bash $APP/deploy/install.sh
 S
 chmod 755 /usr/local/bin/psn-status /usr/local/sbin/psn-update
+
+echo "==> HTTPS front door for the dashboard (Caddy)"
+PSN_DOMAIN="$(grep -E '^PSN_DOMAIN=' /etc/psn-watch.env | cut -d= -f2- || true)"
+if [ -n "$PSN_DOMAIN" ]; then
+  if ! command -v caddy >/dev/null; then
+    apt-get install -yq debian-keyring debian-archive-keyring apt-transport-https gnupg curl
+    curl -1sLf https://dl.cloudsmith.io/public/caddy/stable/gpg.key | gpg --dearmor --yes -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+    curl -1sLf https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt > /etc/apt/sources.list.d/caddy-stable.list
+    apt-get update -q && apt-get install -yq caddy
+  fi
+  cat > /etc/caddy/Caddyfile <<C
+# Managed by psn-watch install.sh — achyuthus.dev/psn is a Vercel rewrite to this host.
+$PSN_DOMAIN {
+	encode gzip
+	header -Server
+	handle /psn* {
+		reverse_proxy 127.0.0.1:8080
+	}
+	handle {
+		respond "Not found" 404
+	}
+}
+C
+  systemctl enable -q caddy && systemctl reload-or-restart caddy
+  echo "    https://$PSN_DOMAIN/psn"
+else
+  echo "    skipped: set PSN_DOMAIN=<host name> in /etc/psn-watch.env to enable"
+fi
 
 echo "==> service"
 chown -R psnwatch:psnwatch "$APP" /var/lib/psn-watch /opt/pw-browsers
