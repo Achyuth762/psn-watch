@@ -21,6 +21,7 @@ import os
 import random
 import threading
 import time
+from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -59,6 +60,8 @@ class Health:
     alerted_drift: bool = False
     in_stock: int = 0
     passes: int = 0
+    # last 48 checks: (timestamp, ok, listings read) — drives the uptime bars
+    history: deque = field(default_factory=lambda: deque(maxlen=48))
 
     @property
     def ok(self) -> bool:
@@ -66,6 +69,7 @@ class Health:
 
     def to_dict(self) -> dict:
         d = dict(self.__dict__)
+        d["history"] = [list(x) for x in self.history]
         d["ok"] = self.ok
         return d
 
@@ -86,6 +90,7 @@ class Engine:
         self.health = {st["name"]: Health(st["name"], st.get("interval", default_interval(st))) for st in stores}
         self.cache: dict[str, dict] = {st["name"]: {} for st in stores}
         self.stop = threading.Event()
+        self.started = time.time()
 
     # ------------------------------------------------------------------ one store, one pass
     def _check(self, store: dict) -> tuple[list[Offer], Exception | None]:
@@ -123,6 +128,7 @@ class Engine:
             self._on_success(store, h, len(readable), now)
         alerts = self.db.record(offers, self.remind_min, self.max_markup, now)
         h.in_stock = sum(1 for o in readable if o.status == IN)
+        h.history.append((round(now), not failed, len(readable)))
         if alerts:
             log.warning("%s %s: %s", "REMINDER" if all(o.reminder for o in alerts) else "RESTOCK",
                         store["name"], ", ".join(o.title for o in alerts))

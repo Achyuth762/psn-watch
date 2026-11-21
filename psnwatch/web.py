@@ -36,14 +36,18 @@ def snapshot(engine) -> dict:
     health = []
     for st in engine.stores:
         h = engine.health[st["name"]]
+        hist = list(h.history)
         health.append({"name": h.name, "ok": h.ok, "interval": int(h.interval), "last_ok": h.last_ok,
                        "last_run": h.last_run, "error": h.last_error[:160], "in_stock": h.in_stock,
+                       "passes": h.passes, "kind": st["type"],
+                       "uptime": round(100 * sum(1 for x in hist if x[1]) / len(hist)) if hist else None,
+                       "history": [[x[0], 1 if x[1] else 0] for x in hist],
                        "url": st.get("url") or (st.get("listings") or st.get("products") or [""])[0]})
     skipped = [{"name": s["name"], "url": s.get("url") or (s.get("listings") or s.get("products") or [""])[0]}
                for s in engine.cfg.get("stores", []) if s.get("enabled", True) and s["name"] not in watched]
     events = [{k: e[k] for k in ("ts", "store", "title", "url", "old", "new", "price", "denomination")}
-              for e in engine.db.events(since=now - 7 * 86400, limit=60) if e["store"] in watched]
-    return {"now": now, "offers": offers, "health": health, "skipped": skipped, "events": events,
+              for e in engine.db.events(since=now - 30 * 86400, limit=400) if e["store"] in watched]
+    return {"now": now, "started": getattr(engine, "started", now), "offers": offers, "health": health, "skipped": skipped, "events": events,
             "alerts_on": bool(os.getenv("NTFY_TOPIC") or os.getenv("TELEGRAM_CHAT_ID"))}
 
 
