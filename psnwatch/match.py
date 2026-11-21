@@ -35,9 +35,16 @@ def clean(title: str) -> str:
     return re.sub(r"\s+", " ", html.unescape(title or "")).strip()
 
 
+_WALLET_WORDS = re.compile(r"wallet|gift|top.?up|recharge|psn card|store card|network card", re.I)
+
+
 def is_psn_india_card(title: str) -> bool:
     t = clean(title)
     if not (_PSN.search(t) and _CARD.search(t)):
+        return False
+    # A wallet card names itself (wallet / gift card / top-up) or shows its amount.
+    # Game codes ("God of War Ragnarok Digital Voucher Code") do neither.
+    if not _WALLET_WORDS.search(t) and denomination(t) is None:
         return False
     if _NOT_CARD.search(t):
         return False
