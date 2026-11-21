@@ -1,0 +1,106 @@
+# psn-watch config (v2, always-on)
+#
+# type:      woocommerce | shopify | page | variants_text   (see README)
+# interval:  seconds between checks for that store (defaults: API 20 s, HTTP page 60 s, browser page 90 s)
+# render:    true = always headless Chromium, "auto" = plain HTTP first, browser if blocked
+# confirm:   page-based stores re-read once before a restock alert (default on for non-API stores)
+
+settings:
+  timezone: Asia/Kolkata
+  remind_every_min: 10        # repeat the alert every 10 min while a card stays in stock (0 = once)
+  max_markup_pct: null        # e.g. 10 → ignore listings priced >10% above face value
+  down_after_min: 20          # alert if a store has been unreadable this long
+  drift_after_passes: 3       # alert if a store's PSN listings vanish for this many reads in a row
+  heartbeat_hour: 9           # daily "still watching" message at 09:00 IST
+  max_backoff_sec: 900        # slowest retry interval for a failing store
+  stall_after_min: 20         # watchdog restarts the process if a worker hangs this long
+
+stores:
+  # ---------------- WooCommerce: one tiny API request per pass ----------------
+  - {name: GamePrex,           type: woocommerce, url: "https://gameprex.in"}
+  - {name: Games Kart,         type: woocommerce, url: "https://gamekart.in"}
+  - {name: NI Store,           type: woocommerce, url: "https://www.nistore.in"}
+  - {name: Sheenu Game Center, type: woocommerce, url: "https://sheenugamecenter.com"}
+  - {name: HG World,           type: woocommerce, url: "https://hgworld.in"}
+  - {name: KRG Kart,           type: woocommerce, url: "https://krgkart.com"}
+  # No PSN listing on 17 Nov — re-searched every 5 min so a new listing is caught quickly.
+  - {name: Hitech Gamez, type: woocommerce, url: "https://hitechgamez.in", discover_every: 300, expect_listings: false}
+  - {name: E2Z Store,    type: woocommerce, url: "https://e2zstore.com",   discover_every: 300, expect_listings: false}
+
+  # ---------------- Shopify ----------------
+  - {name: Simply Gaming, type: shopify, url: "https://www.simplygaming.in"}
+
+  # ---------------- Product pages ----------------
+  - name: Games The Shop
+    type: page
+    render: true
+    interval: 90
+    listings: ["https://www.gamestheshop.com/playstation"]
+    link_regex: "/product/"
+
+  - name: Play-Asia
+    type: page
+    render: auto
+    interval: 60
+    listings: ["https://www.play-asia.com/en/search/psn+india"]
+    link_regex: "psn-card-\\d+-inr-playstation-network-india"
+
+  - name: MD Computers
+    type: page
+    render: auto
+    interval: 60
+    listings: ["https://mdcomputers.in/catalog/gift-card"]
+    link_regex: "/product/"
+    products: ["https://mdcomputers.in/product/sony-playstation-gift-card-inr-1000"]
+
+  - name: Flipkart
+    type: page
+    render: auto
+    interval: 60
+    products:
+      - "https://www.flipkart.com/ps-wallet-top-up-670-new-ps4-ps5/p/itmbc5f8e2ea9035"
+      - "https://www.flipkart.com/ps-wallet-top-up-2000-new-ps4-ps5/p/itm4c3333ee381ad"
+      - "https://www.flipkart.com/3000-playstation-network-wallet-top-up/p/itmfg2q9uekyhcck"
+
+  - name: Croma
+    type: page
+    render: true
+    interval: 120
+    products:
+      - "https://www.croma.com/sony-playstation-wallet-for-ps5-ps4-ps3-or-ps-vita-top-670-new-50668383-/p/255344"
+      - "https://www.croma.com/sony-playstation-wallet-for-ps5-ps4-ps3-or-ps-vita-top-2000-new-50668384-/p/255343"
+
+  - name: Amazon
+    type: page
+    render: auto
+    interval: 180
+    listings: ["https://www.amazon.in/s?k=playstation+wallet+top+up+india"]
+    link_regex: "/dp/[A-Z0-9]{10}"
+    max_products: 10
+    use_jsonld: false
+    text_scope: "#rightCol, #desktop_buybox, #buybox"
+    out_patterns: ["currently unavailable", "out of stock", "no featured offers available"]
+    in_patterns: ["add to cart", "buy now", "in stock"]
+
+  # ---------------- One page, many denominations ----------------
+  - name: Rooter
+    type: variants_text
+    render: true
+    interval: 45
+    url: "https://shop.rooter.gg/product/playstation-gift-cards"
+    item_regex: "Rs\\.?\\s?(?P<denom>[\\d,]+)\\s*Wallet Code"
+    title_prefix: "PlayStation Gift Card India"
+
+  # ---------------- Not watched yet (enabled: false) — reasons as of 17 Nov 2026 ----------------
+  - {name: JioGames,     enabled: false, type: page, products: [], note: "store.jiogames.com redirects to a maintenance page"}
+  - {name: GYFTR,        enabled: false, type: page, products: [], note: "no PlayStation brand page found"}
+  - {name: Woohoo,       enabled: false, type: page, products: [], note: "site search 404; needs the PSN brand page URL"}
+  - {name: 99Gift,       enabled: false, type: page, products: [], note: "redirects automated visits to /unauthorized"}
+  - {name: Digistore,    enabled: false, type: page, products: [], note: "answered 429 Too Many Requests"}
+  - {name: Blue Vault,   enabled: false, type: page, products: [], note: "gift-card pages 404 when opened directly"}
+  - {name: Stan Shop,    enabled: false, type: page, products: [], note: "search found no PSN India product"}
+  - {name: E Mart Games, enabled: false, type: page, products: [], note: "blank page"}
+  - {name: Venus Games,  enabled: false, type: page, products: [], note: "blank page"}
+  - {name: Blinkit,      enabled: false, type: page, products: [], note: "stock depends on delivery location; app-first"}
+  - {name: UniPin,       enabled: false, type: page, products: [], note: "not checked yet"}
+  - {name: SWAG,         enabled: false, type: page, products: [], note: "not checked yet"}

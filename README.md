@@ -1,0 +1,61 @@
+# psn-watch
+
+Always-on watcher for **PSN India wallet / gift cards** across Indian stores. It sends an urgent phone alert, with a buy button, the moment one is in stock.
+
+## Why stock is so hard to catch
+Sony reportedly caps each Indian retailer at about ₹5 lakh of PSN top-ups per week. Stores sell out within hours of a restock. So this watcher:
+- checks the stores that have a data feed every **~20 s**, and pages that need a browser every **45–120 s**
+- runs 24/7 on a small cloud VM, so it never sleeps the way a laptop does
+
+## How it detects stock (fastest reliable method per store)
+| Store kind | How | Pass cost |
+|---|---|---|
+| WooCommerce (GamePrex, Games Kart, NI Store, Sheenu, HG World, KRG Kart, Hitech Gamez, E2Z) | Store API, `?include=<known ids>` | 1 small JSON request |
+| Shopify (Simply Gaming) | `/products/<handle>.js` per PSN listing | ~10 KB each |
+| Product pages (Flipkart, Play-Asia, MD Computers, Amazon, Croma, Games The Shop) | schema.org `availability`, else stock text | 1 page each |
+| One page, many denominations (Rooter) | label after each "Rs.X Wallet Code" | 1 page |
+
+New listings are found by re-searching each store every 5–15 min. A new ₹7000 card gets picked up without any config change.
+
+## Robustness
+- **Independent workers.** Each store has its own thread and interval, so one slow site never delays the rest.
+- **Backoff.** Failing stores back off exponentially and respect the `Retry-After` header on HTTP 429.
+- **No false alarms.** A page-based "in stock" reading is **re-read once** before alerting. An unreadable page never erases the last good reading.
+- **Health alerts.** You're told if a store is unreadable for 20+ minutes, or if its PSN listings suddenly vanish (layout change).
+- **Daily heartbeat (09:00 IST).** Silence then means "nothing in stock", not "watcher dead".
+- **Watchdog.** If a worker or the browser hangs, the process exits and **systemd restarts it**. A crash loop raises an alert.
+- **Low resource use.** One shared headless Chromium, with images and fonts blocked, recycled every 60 pages. 2 GB swap. Memory capped so it can't take the VM down.
+- **Durable state.** Everything is stored in SQLite (WAL), including a stock-change history you can study for restock patterns.
+
+## Install on a VM (Ubuntu 22.04/24.04)
+```bash
+curl -fsSL https://raw.githubusercontent.com/Achyuth762/psn-watch/main/deploy/install.sh | sudo bash -s -- YOUR_NTFY_TOPIC
+```
+After that:
+- `psn-status`: what it sees right now, plus the recent log
+- `sudo psn-update`: pull the latest code from GitHub and restart
+- Alert settings live in `/etc/psn-watch.env` on the VM, not in this repo. You can add `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` or `HEALTHCHECK_URL` there.
+
+## Phone alerts (ntfy)
+1. Install the **ntfy** app (Android/iOS).
+2. Subscribe to your topic on ntfy.sh.
+3. In the topic settings, allow it to override Do Not Disturb.
+
+Restocks arrive at max priority with up to three "Buy" buttons. Health warnings and the heartbeat arrive at lower priority.
+
+## Run locally
+```bash
+pip install -r requirements.txt && playwright install chromium
+cp .env.example .env            # put NTFY_TOPIC in it
+python watch.py --test-notify   # check your phone
+python watch.py --once          # one pass over every store
+python watch.py                 # run forever
+python -m pytest -q             # offline tests
+```
+
+## Adding or fixing a store
+Edit `config.yaml`.
+- **WooCommerce/Shopify:** one line with `type` and `url`. To check the platform, open `https://SITE/wp-json/wc/store/v1/products` or `https://SITE/products.json` in a browser and see whether it returns JSON.
+- **Other sites:** `type: page` with `products:` URLs and/or a `listings:` page plus `link_regex`. Then debug with `python watch.py --only "Name" --once --dry-run -v`.
+
+Stores currently disabled are listed at the bottom of `config.yaml`, each with its reason.

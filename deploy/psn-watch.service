@@ -1,0 +1,23 @@
+[Unit]
+Description=psn-watch: PSN India gift card stock watcher
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+User=psnwatch
+WorkingDirectory=/opt/psn-watch
+EnvironmentFile=/etc/psn-watch.env
+Environment=PSN_DATA=/var/lib/psn-watch
+Environment=PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/psn-watch/.venv/bin/python /opt/psn-watch/watch.py
+Restart=always
+RestartSec=10
+# keep a runaway browser from taking the whole 1 GB VM down
+MemoryHigh=650M
+MemoryMax=800M
+Nice=5
+
+[Install]
+WantedBy=multi-user.target
