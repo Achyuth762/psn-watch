@@ -4,366 +4,711 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<meta name="theme-color" content="#EEF2F8" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0B1430" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#0A0F1C" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F3F5F9" media="(prefers-color-scheme: light)">
+<meta name="description" content="Live PSN India wallet card stock across Indian stores">
 <title>PSN India stock</title>
 <link rel="manifest" href="/psn/manifest.webmanifest">
 <link rel="icon" href="/psn/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/psn/icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
+/* ===================================================================== tokens */
+:root {
+  --bg: #0A0F1C; --panel: #0F1729; --panel-2: #142039; --line: #1F2B47; --line-2: #2A3A5E;
+  --ink: #E7EDF8; --ink-2: #A3AFC8; --muted: #7F8CA8;
+  --accent: #5B95FF; --accent-ink: #06122B;
+  --in: #34D399; --in-bg: rgba(52, 211, 153, .12); --in-line: rgba(52, 211, 153, .45);
+  --warn: #F5B544; --bad: #FF7A70; --bad-bg: rgba(255, 122, 112, .12);
+  --ui: "Chakra Petch", ui-sans-serif, system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  --r: 10px; --strip-h: 52px;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
   :root {
-    --paper: #EEF2F8;
-    --surface: #FFFFFF;
-    --ink: #0F1B3D;
-    --ink-2: #4A5672;
-    --muted: #8A93A6;
-    --line: #D9E0EC;
-    --blue: #0047BB;
-    --blue-ink: #FFFFFF;
-    --green: #0E8A4F;
-    --green-wash: #E3F5EC;
-    --red: #B42318;
-    --radius-l: 18px;
-    --radius-s: 10px;
+    --bg: #F3F5F9; --panel: #FFFFFF; --panel-2: #EEF2F8; --line: #DCE2EC; --line-2: #C6CFDE;
+    --ink: #0C1426; --ink-2: #47536B; --muted: #5E6984;
+    --accent: #1D5BD6; --accent-ink: #FFFFFF;
+    --in: #08794A; --in-bg: #E2F5EC; --in-line: #7FCBA8;
+    --warn: #8A5A00; --bad: #B4231A; --bad-bg: #FDECEA;
     color-scheme: light;
   }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --paper: #0B1430; --surface: #121E42; --ink: #E9EEF9; --ink-2: #A9B4CF; --muted: #6C7898;
-      --line: #23305A; --blue: #5B8DFF; --blue-ink: #0B1430; --green: #3DD68C; --green-wash: #0F3328;
-      --red: #FF8A80; color-scheme: dark;
-    }
-  }
-  * { box-sizing: border-box; }
-  html { -webkit-text-size-adjust: 100%; }
-  body {
-    margin: 0; background: var(--paper); color: var(--ink);
-    font-family: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
-    font-optical-sizing: auto; font-size: 17px; line-height: 1.5;
-    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-  }
-  a { color: inherit; }
-  :focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; border-radius: 6px; }
-  .wrap { max-width: 640px; margin: 0 auto; padding: 18px 20px 64px; }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink); font: 500 15px/1.45 var(--ui);
+  background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 32px 32px; background-attachment: fixed;
+  background-position: -1px -1px;
+}
+@media (prefers-color-scheme: light) { body { background-image: none; } }
+a { color: inherit; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mono { font-family: var(--mono); font-feature-settings: "tnum" 1, "zero" 1; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.skip { position: absolute; left: 8px; top: -40px; background: var(--accent); color: var(--accent-ink); padding: 8px 12px; border-radius: 6px; z-index: 10; }
+.skip:focus { top: 8px; }
 
-  /* top bar */
-  .bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 40px; }
-  .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 16px; letter-spacing: -0.01em; }
-  .brand svg { width: 26px; height: 26px; }
-  .live { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-2); }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
-  .live.stale .dot { background: var(--red); }
-  .live.stale { color: var(--red); }
+/* ===================================================================== status strip */
+.strip {
+  position: sticky; top: 0; z-index: 5; min-height: var(--strip-h);
+  display: flex; align-items: center; gap: 18px; padding: 0 20px; padding-top: env(safe-area-inset-top);
+  background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.brand { display: flex; align-items: center; gap: 9px; font-weight: 700; font-size: 16px; letter-spacing: .01em; white-space: nowrap; }
+.brand svg { width: 22px; height: 22px; color: var(--accent); }
+.stats { display: flex; gap: 18px; flex: 1; min-width: 0; overflow: hidden; }
+.stat { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; font-size: 13px; color: var(--ink-2); }
+.stat b { font: 600 13px/1 var(--mono); color: var(--ink); }
+.pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--in); align-self: center; box-shadow: 0 0 0 0 var(--in-line); }
+.live.off .pulse { background: var(--bad); }
+.live.off b { color: var(--bad); }
+@media (prefers-reduced-motion: no-preference) {
+  .live:not(.off) .pulse { animation: ping 2.4s ease-out infinite; }
+  @keyframes ping { 0% { box-shadow: 0 0 0 0 var(--in-line); } 70%, 100% { box-shadow: 0 0 0 7px transparent; } }
+}
+.bell { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 12px; border-radius: 8px;
+        border: 1px solid var(--line-2); background: var(--panel); cursor: pointer; font-size: 13px; white-space: nowrap; }
+.bell[aria-pressed="true"] { border-color: var(--in-line); color: var(--in); }
+.bell svg { width: 16px; height: 16px; }
 
-  /* hero: the answer */
-  .answer { margin: 34px 0 10px; font-weight: 800; letter-spacing: -0.035em; line-height: 0.98;
-            font-size: clamp(44px, 13vw, 76px); font-variation-settings: "opsz" 96; text-wrap: balance; }
-  .answer.yes { color: var(--green); }
-  .lede { margin: 14px 0 0; color: var(--ink-2); max-width: 34em; }
+/* ===================================================================== layout */
+.wrap { max-width: 1240px; margin: 0 auto; padding: 22px 20px 40px; }
+.hero { display: grid; grid-template-columns: 1fr auto; gap: 8px 24px; align-items: end; }
+.verdict { margin: 0; font: 700 clamp(30px, 5.4vw, 52px)/1.02 var(--ui); letter-spacing: -.01em; }
+.verdict.yes { color: var(--in); }
+.verdict .x { color: var(--muted); }
+.subline { margin: 0; color: var(--ink-2); grid-column: 1 / -1; max-width: 70ch; }
+.buys { grid-column: 1 / -1; display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+.buy { display: inline-grid; grid-template-columns: auto auto; gap: 2px 14px; align-items: center; text-decoration: none;
+       padding: 10px 14px; border-radius: var(--r); background: var(--in-bg); border: 1px solid var(--in-line); }
+.buy .v { font: 600 20px/1 var(--mono); color: var(--in); }
+.buy .s { font-size: 13px; color: var(--ink-2); }
+.buy .go { grid-row: span 2; font-weight: 700; color: var(--in); }
 
-  .buy-list { list-style: none; padding: 0; margin: 26px 0 0; display: grid; gap: 12px; }
-  .buy { background: var(--green-wash); border-radius: var(--radius-l); padding: 16px 16px 16px 18px;
-         display: grid; grid-template-columns: 1fr auto; gap: 4px 14px; align-items: center; }
-  .buy .val { font-weight: 800; font-size: 30px; letter-spacing: -0.02em; line-height: 1.05; }
-  .buy .where { color: var(--ink-2); font-size: 15px; }
-  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 20px;
-         border-radius: 999px; background: var(--blue); color: var(--blue-ink); font-weight: 600; font-size: 16px;
-         text-decoration: none; border: 0; cursor: pointer; font-family: inherit; white-space: nowrap; }
-  .buy .btn { grid-row: span 2; background: var(--green); color: #fff; }
-  @media (prefers-color-scheme: dark) { .buy .btn { color: #06251A; } }
+/* ===================================================================== toolbar: tabs + filters */
+.toolbar { margin-top: 22px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+           border-bottom: 1px solid var(--line); }
+[role="tablist"] { display: flex; gap: 2px; }
+[role="tab"] { appearance: none; border: 0; background: none; cursor: pointer; padding: 12px 14px 11px; font-weight: 600; font-size: 15px;
+               color: var(--ink-2); border-bottom: 2px solid transparent; margin-bottom: -1px; display: inline-flex; gap: 8px; align-items: baseline; }
+[role="tab"][aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+[role="tab"] kbd { font: 500 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--line-2); border-radius: 4px; padding: 2px 4px; }
+@media (hover: none) { [role="tab"] kbd { display: none; } }
+.filters { display: flex; gap: 8px; padding: 6px 0; flex-wrap: wrap; }
+.tog { min-height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line-2); background: var(--panel); cursor: pointer; font-size: 13px; }
+.tog[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.values { display: flex; gap: 6px; overflow-x: auto; padding: 12px 0 2px; scrollbar-width: none; }
+.values::-webkit-scrollbar { display: none; }
+.val { flex: none; min-height: 34px; padding: 0 11px; border-radius: 8px; border: 1px solid var(--line-2); background: transparent; cursor: pointer;
+       font: 500 13px/1 var(--mono); color: var(--ink-2); }
+.val[aria-pressed="true"] { color: var(--ink); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.val .c { color: var(--in); margin-left: 6px; }
 
-  /* sections */
-  section { margin-top: 44px; }
-  h2 { font-size: 22px; font-weight: 600; letter-spacing: -0.015em; margin: 0 0 4px; }
-  .sub { margin: 0 0 16px; color: var(--ink-2); font-size: 15px; }
+.panel { margin-top: 16px; }
+.panel[hidden] { display: none; }
+.box { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); }
 
-  .chips { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 10px; margin: 0 -2px; scrollbar-width: none; }
-  .chips::-webkit-scrollbar { display: none; }
-  .chip { flex: none; min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1.5px solid var(--line);
-          background: transparent; color: var(--ink); font: 500 15px/1 inherit; font-family: inherit; cursor: pointer; }
-  .chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
-  .chip .n { color: var(--green); font-weight: 600; margin-left: 6px; }
-  .chip[aria-pressed="true"] .n { color: var(--paper); }
+/* ===================================================================== matrix (desktop) */
+.mx-wrap { overflow-x: auto; }
+table.mx { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+.mx th, .mx td { border-bottom: 1px solid var(--line); padding: 0; }
+.mx thead th { position: sticky; top: 0; background: var(--panel); text-align: center; padding: 10px 6px 9px; font-weight: 600; white-space: nowrap; }
+.mx thead th .fv { display: block; font: 600 14px/1.1 var(--mono); color: var(--ink); }
+.mx thead th .cnt { display: block; font: 500 11px/1.4 var(--mono); color: var(--muted); }
+.mx thead th .cnt.has { color: var(--in); }
+.mx thead th:first-child, .mx tbody th { text-align: left; position: sticky; left: 0; background: var(--panel); z-index: 1; }
+.mx thead th:first-child { padding-left: 16px; }
+.mx tbody th { padding: 0 12px 0 16px; font-weight: 600; white-space: nowrap; height: 42px; }
+.mx tbody th .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--in); margin-right: 8px; vertical-align: 1px; }
+.mx tbody th .dot.bad { background: var(--bad); }
+.mx tbody tr:last-child th, .mx tbody tr:last-child td { border-bottom: 0; }
+.mx td { text-align: center; min-width: 78px; }
+.cell { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; height: 40px; margin: 3px;
+        border-radius: 7px; text-decoration: none; font-family: var(--mono); }
+.cell .g { font-size: 12px; line-height: 1; }
+.cell .p { font-size: 12px; }
+.cell.out { color: var(--muted); }
+.cell.out:hover { background: var(--panel-2); }
+.cell.in { background: var(--in-bg); color: var(--in); border: 1px solid var(--in-line); font-weight: 600; }
+.cell.in .p { color: var(--ink); }
+.cell.best::after { content: "best"; font: 600 9px/1 var(--mono); letter-spacing: .02em; color: var(--accent); margin-top: 1px; }
+.cell.none { color: var(--muted); }
+.cell.dim { background: none; border-color: transparent; color: var(--muted); font-weight: 500; }
+.cell.dim .p, .cell.dim .mk { color: var(--muted); }
+.cell.dim.best::after { content: none; }
+.mk { color: var(--warn); }
 
-  .denom { margin-top: 22px; }
-  .denom-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
-                padding-bottom: 8px; border-bottom: 1.5px solid var(--ink); }
-  .denom-head h3 { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
-  .denom-head span { font-size: 14px; color: var(--ink-2); }
-  .rows { list-style: none; margin: 0; padding: 0; }
-  .row a { display: grid; grid-template-columns: 22px 1fr auto; gap: 12px; align-items: center;
-           padding: 13px 2px; border-bottom: 1px solid var(--line); text-decoration: none; }
-  .row .store { font-weight: 500; }
-  .row .meta { font-size: 14px; color: var(--ink-2); }
-  .row .state { font-size: 14px; text-align: right; white-space: nowrap; }
-  .row.out .store, .row.out .state { color: var(--muted); }
-  .row.in .state { color: var(--green); font-weight: 600; }
-  .mk { font-size: 13px; color: var(--red); margin-left: 6px; }
-  .glyph { width: 18px; height: 18px; display: block; }
-  .row.out .glyph { color: var(--muted); }
-  .row.in .glyph { color: var(--green); }
+/* matrix (phone): one row per face value, one dot per store */
+.mxm { display: none; }
+.mx-note { margin: 8px 2px 0; font-size: 13px; color: var(--muted); }
+.fvrow { border-bottom: 1px solid var(--line); }
+.fvrow:last-child { border-bottom: 0; }
+.fvrow > button { width: 100%; display: grid; grid-template-columns: 82px 1fr auto 18px; align-items: center; gap: 10px; padding: 12px 14px;
+                  background: none; border: 0; cursor: pointer; text-align: left; min-height: 52px; }
+.fvrow .fv { font: 600 15px/1 var(--mono); }
+.fvrow .dots { display: flex; gap: 5px; flex-wrap: wrap; }
+.fvrow .dots i { width: 10px; height: 10px; border-radius: 3px; background: var(--line-2); }
+.fvrow .dots i.in { background: var(--in); }
+.fvrow .cnt { font: 500 12px/1 var(--mono); color: var(--muted); }
+.fvrow .cnt.has { color: var(--in); }
+.fvrow .chev { width: 14px; height: 14px; color: var(--muted); transition: transform .15s; }
+.fvrow > button[aria-expanded="true"] .chev { transform: rotate(90deg); }
+.fvrow ul { list-style: none; margin: 0; padding: 0 14px 10px; }
+.fvrow li a { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center; padding: 9px 0; border-top: 1px dashed var(--line); text-decoration: none; min-height: 44px; }
+.fvrow li .st { font: 600 12px/1 var(--mono); }
+.fvrow li .st.in { color: var(--in); }
+.fvrow li .st.out { color: var(--muted); }
+.fvrow li .pr { font: 500 13px/1 var(--mono); color: var(--ink-2); }
+@media (max-width: 760px) {
+  .mx-wrap { display: none; }
+  .mxm { display: block; }
+}
 
-  .stores { list-style: none; padding: 0; margin: 0; }
-  .stores li { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
-  .stores .name { font-weight: 500; }
-  .stores .when { font-size: 14px; color: var(--ink-2); grid-column: 1 / -1; }
-  .stores .bad { color: var(--red); }
-  .stores .ok { font-size: 14px; color: var(--ink-2); }
+/* ===================================================================== cards */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.card { display: grid; gap: 6px; padding: 14px; text-decoration: none; border-radius: var(--r); background: var(--panel); border: 1px solid var(--line); }
+.card.in { border-color: var(--in-line); background: linear-gradient(var(--in-bg), var(--in-bg)), var(--panel); }
+.card .top { display: flex; justify-content: space-between; align-items: baseline; }
+.card .fv { font: 600 20px/1 var(--mono); }
+.card .st { font: 600 12px/1 var(--mono); }
+.card.in .st { color: var(--in); }
+.card.out .st, .card.out .fv { color: var(--muted); }
+.card .meta { color: var(--ink-2); font-size: 13px; }
+.card .meta .mono { color: var(--ink); }
+.sortbar { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 10px; align-items: center; font-size: 13px; color: var(--ink-2); }
+.sortbar select { background: var(--panel); color: var(--ink); border: 1px solid var(--line-2); border-radius: 8px; min-height: 34px; padding: 0 8px; font: inherit; }
 
-  details { margin-top: 18px; border-radius: var(--radius-s); background: var(--surface); padding: 14px 16px; }
-  summary { cursor: pointer; font-weight: 500; }
-  details p { color: var(--ink-2); font-size: 15px; margin: 10px 0 6px; }
-  details ul { margin: 0; padding-left: 18px; }
-  details li { padding: 3px 0; }
+/* ===================================================================== stores */
+table.st { width: 100%; border-collapse: collapse; font-size: 14px; }
+.st th, .st td { padding: 11px 14px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
+.st thead th { font-size: 12px; color: var(--muted); font-weight: 600; }
+.st tbody tr:last-child td, .st tbody tr:last-child th { border-bottom: 0; }
+.st .name { font-weight: 600; }
+.st .num { font-family: var(--mono); font-size: 13px; color: var(--ink-2); white-space: nowrap; }
+.st .ok { color: var(--in); font-weight: 600; }
+.st .bad { color: var(--bad); font-weight: 600; }
+.st .err { color: var(--ink-2); font-size: 13px; }
+.bars { display: flex; gap: 2px; height: 22px; align-items: stretch; min-width: 150px; }
+.bars i { flex: 1; min-width: 2px; border-radius: 2px; background: var(--in); opacity: .85; }
+.bars i.f { background: var(--bad); }
+.bars i.e { background: var(--line); }
+.kind { font: 500 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--line-2); border-radius: 4px; padding: 3px 5px; }
+@media (max-width: 760px) {
+  .st thead { display: none; }
+  .st tr { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+  .st td, .st th { padding: 0; border: 0; }
+  .st .c-bars { grid-column: 1 / -1; }
+  .st .c-every, .st .c-kind { display: none; }
+}
+.skipped { margin-top: 12px; padding: 14px 16px; }
+.skipped h2 { margin: 0 0 4px; font-size: 15px; }
+.skipped p { margin: 0 0 10px; color: var(--ink-2); font-size: 13px; }
+.skipped ul { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 0; padding: 0; }
+.skipped a { display: inline-flex; min-height: 34px; align-items: center; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line-2); text-decoration: none; font-size: 13px; }
 
-  .events { list-style: none; padding: 0; margin: 0; }
-  .events li { display: grid; grid-template-columns: 88px 1fr; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
-  .events time { color: var(--ink-2); font-size: 14px; }
-  .events .came { color: var(--green); font-weight: 600; }
-  .events li.none { display: block; color: var(--ink-2); border-bottom: 0; }
+/* ===================================================================== history */
+.hist { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 900px) { .hist { grid-template-columns: 1fr; } }
+.hist h2 { margin: 0 0 2px; font-size: 15px; }
+.hist .hint { margin: 0 0 12px; font-size: 13px; color: var(--ink-2); }
+.hist .box { padding: 16px; }
+.heat { display: grid; grid-template-columns: 34px repeat(24, minmax(0, 1fr)); gap: 3px; font: 500 10px/1 var(--mono); color: var(--muted); }
+.heat .h { text-align: center; }
+.heat .d { display: flex; align-items: center; }
+.heat i { aspect-ratio: 1; border-radius: 3px; background: var(--panel-2); border: 1px solid var(--line); }
+.heat i[data-n="1"] { background: color-mix(in srgb, var(--in) 35%, var(--panel-2)); }
+.heat i[data-n="2"] { background: color-mix(in srgb, var(--in) 60%, var(--panel-2)); }
+.heat i[data-n="3"] { background: var(--in); }
+.log { list-style: none; margin: 0; padding: 0; max-height: 360px; overflow: auto; }
+.log li { display: grid; grid-template-columns: 104px 1fr; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.log time { font: 500 12px/1.4 var(--mono); color: var(--muted); }
+.log .in { color: var(--in); font-weight: 600; }
+.empty { color: var(--ink-2); font-size: 14px; padding: 18px 16px; }
 
-  .alerts { margin-top: 44px; padding: 18px; border-radius: var(--radius-l); background: var(--surface); }
-  .alerts h2 { font-size: 18px; }
-  .alerts p { margin: 6px 0 0; color: var(--ink-2); font-size: 15px; }
-  .alerts .row-btns { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
-  .btn.ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--line); }
-
-  .empty { color: var(--ink-2); padding: 18px 0; }
-  .banner { margin-top: 18px; padding: 12px 14px; border-radius: var(--radius-s); background: #FDECEA; color: #7A1A12; font-size: 15px; }
-  @media (prefers-color-scheme: dark) { .banner { background: #3A1512; color: #FFC9C3; } }
-  [hidden] { display: none !important; }
-
-  .answer, .lede, .buy-list { animation: none; }
-  @media (prefers-reduced-motion: no-preference) {
-    .answer.fresh { animation: settle 520ms cubic-bezier(.2,.8,.2,1); }
-    @keyframes settle { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-  }
+/* ===================================================================== footer + banner */
+.banner { margin-top: 14px; padding: 10px 14px; border-radius: var(--r); background: var(--bad-bg); color: var(--bad); font-size: 14px; }
+footer { margin-top: 26px; display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 13px; color: var(--muted); }
+footer kbd { font: 500 11px/1 var(--mono); border: 1px solid var(--line-2); border-radius: 4px; padding: 2px 5px; color: var(--ink-2); }
+@media (max-width: 760px) {
+  .buys { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .buy { grid-template-columns: 1fr auto; padding: 9px 11px; gap: 2px 8px; }
+  .buy .v { font-size: 17px; }
+  .buy .go { grid-row: auto; font-size: 13px; }
+  .buy .s { grid-column: 1 / -1; font-size: 12px; }
+  [role="tablist"] { overflow-x: auto; scrollbar-width: none; flex: 1 1 100%; }
+  [role="tab"] { padding: 11px 10px 10px; font-size: 14px; }
+  [role="tab"] kbd { display: none; }
+  .toolbar { gap: 0; }
+  .verdict { font-size: 30px; }
+  .verdict .x { display: none; }
+  .stats .opt { display: none; }
+  .strip { gap: 12px; padding: 0 14px; }
+  .wrap { padding: 16px 14px 32px; }
+  .bell .t { display: none; }
+  footer .keys { display: none; }
+}
+[hidden] { display: none !important; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="strip">
+  <div class="brand">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="12" cy="12" r="2.6" fill="currentColor"/></svg>
+    PSN stock
+  </div>
+  <div class="stats" aria-label="Watcher status">
+    <span class="stat live" id="live"><span class="pulse" aria-hidden="true"></span><b id="liveTxt">Connecting</b></span>
+    <span class="stat"><b id="sOk">–</b> stores ok</span>
+    <span class="stat opt">next check <b id="sNext">–</b></span>
+    <span class="stat opt">last restock <b id="sLast">–</b></span>
+  </div>
+  <button class="bell" id="bell" aria-pressed="false" title="Notify me in this browser when a card comes in stock">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15L6 16Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M10 20.5a2 2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+    <span class="t" id="bellTxt">Browser alerts off</span>
+  </button>
+</header>
+
 <div class="wrap">
-  <header class="bar">
-    <div class="brand">
-      <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="11" fill="none" stroke="currentColor" stroke-width="3.2"/><circle cx="16" cy="16" r="3.4" fill="currentColor"/></svg>
-      PSN India stock
-    </div>
-    <div class="live" id="live" role="status" aria-live="polite"><span class="dot"></span><span id="liveText">Connecting</span></div>
-  </header>
-
-  <main>
-    <h1 class="answer" id="answer">Checking stores…</h1>
-    <p class="lede" id="lede"></p>
-    <ul class="buy-list" id="buyList" hidden></ul>
-    <div class="banner" id="banner" hidden></div>
-
-    <section aria-labelledby="cardsTitle">
-      <h2 id="cardsTitle">Every card we track</h2>
-      <p class="sub" id="cardsSub">Grouped by face value. Tap a row to open the store.</p>
-      <div class="chips" id="chips" role="group" aria-label="Filter by face value"></div>
-      <div id="denoms"></div>
+  <main id="main">
+    <section class="hero" aria-labelledby="verdict">
+      <h1 class="verdict" id="verdict">Checking stores…</h1>
+      <p class="subline" id="subline"></p>
+      <div class="buys" id="buys" hidden></div>
     </section>
+    <div class="banner" id="banner" role="alert" hidden></div>
 
-    <section aria-labelledby="storesTitle">
-      <h2 id="storesTitle">Stores</h2>
-      <p class="sub">How often each store is checked, and whether the last check worked.</p>
-      <ul class="stores" id="stores"></ul>
-      <details id="skippedBox" hidden>
-        <summary id="skippedTitle"></summary>
-        <p>These stores refuse requests from the cloud server, so they can't be watched from it. Check them yourself, or use the store's own "Notify me" button.</p>
-        <ul id="skipped"></ul>
-      </details>
-    </section>
-
-    <section aria-labelledby="eventsTitle">
-      <h2 id="eventsTitle">Recent changes</h2>
-      <p class="sub">Restocks and sell-outs from the last 7 days.</p>
-      <ul class="events" id="events"></ul>
-    </section>
-
-    <aside class="alerts" aria-labelledby="alertsTitle">
-      <h2 id="alertsTitle">Phone alerts</h2>
-      <p id="alertsText">Checking…</p>
-      <div class="row-btns">
-        <button class="btn ghost" id="installBtn" hidden>Add to home screen</button>
+    <div class="toolbar">
+      <div role="tablist" aria-label="Views" id="tabs">
+        <button role="tab" id="t-matrix" aria-controls="p-matrix" aria-selected="true">Matrix <kbd>1</kbd></button>
+        <button role="tab" id="t-cards" aria-controls="p-cards" aria-selected="false" tabindex="-1">Cards <kbd>2</kbd></button>
+        <button role="tab" id="t-stores" aria-controls="p-stores" aria-selected="false" tabindex="-1">Stores <kbd>3</kbd></button>
+        <button role="tab" id="t-history" aria-controls="p-history" aria-selected="false" tabindex="-1">History <kbd>4</kbd></button>
       </div>
-    </aside>
-  </main>
-</div>
+      <div class="filters" role="group" aria-label="Filters">
+        <button class="tog" id="fIn" aria-pressed="false">In stock only</button>
+        <button class="tog" id="fFace" aria-pressed="false" title="Hide listings priced above face value">No markup</button>
+      </div>
+    </div>
+    <div class="values" id="values" role="group" aria-label="Face values to show"></div>
 
-<template id="glyphIn"><svg class="glyph" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="2.6"/></svg></template>
-<template id="glyphOut"><svg class="glyph" viewBox="0 0 20 20" aria-hidden="true"><path d="M4.5 4.5l11 11M15.5 4.5l-11 11" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></template>
+    <section class="panel" id="p-matrix" role="tabpanel" aria-labelledby="t-matrix" tabindex="0">
+      <div class="box mx-wrap"><table class="mx" id="mx"><caption class="sr">Stock by store and face value</caption></table></div>
+      <div class="box mxm" id="mxm"></div>
+      <p class="mx-note" id="mxNote" hidden></p>
+    </section>
+
+    <section class="panel" id="p-cards" role="tabpanel" aria-labelledby="t-cards" tabindex="0" hidden>
+      <div class="sortbar"><label for="sort">Sort</label>
+        <select id="sort"><option value="stock">In stock first</option><option value="value">Face value</option><option value="price">Price</option><option value="store">Store</option></select>
+      </div>
+      <div class="cards" id="cards"></div>
+    </section>
+
+    <section class="panel" id="p-stores" role="tabpanel" aria-labelledby="t-stores" tabindex="0" hidden>
+      <div class="box"><table class="st" id="st">
+        <caption class="sr">Store health</caption>
+        <thead><tr><th scope="col">Store</th><th scope="col">Status</th><th scope="col" class="c-every">Checked</th><th scope="col">Last check</th><th scope="col">Last 48 checks</th><th scope="col" class="c-kind">Method</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <div class="box skipped" id="skipped" hidden>
+        <h2 id="skTitle"></h2>
+        <p>These refuse requests from the cloud server, so they can't be watched from it. Check them yourself or use the store's own "Notify me" button.</p>
+        <ul id="skList"></ul>
+      </div>
+    </section>
+
+    <section class="panel" id="p-history" role="tabpanel" aria-labelledby="t-history" tabindex="0" hidden>
+      <div class="hist">
+        <div class="box">
+          <h2>When restocks happen</h2>
+          <p class="hint" id="heatHint">Restocks over the last 30 days by weekday and hour (IST).</p>
+          <div class="heat" id="heat" role="img"></div>
+        </div>
+        <div class="box">
+          <h2>Stock changes</h2>
+          <p class="hint">Restocks and sell-outs, newest first.</p>
+          <ul class="log" id="log" tabindex="0" aria-label="Stock changes, newest first"></ul>
+        </div>
+      </div>
+    </section>
+
+    <div class="sr" aria-live="assertive" id="announce"></div>
+  </main>
+
+  <footer>
+    <span id="foot">Phone alerts via ntfy</span>
+    <span class="keys">Keys: <kbd>1</kbd>–<kbd>4</kbd> views, <kbd>i</kbd> in stock only, <kbd>m</kbd> no markup, <kbd>b</kbd> browser alerts</span>
+  </footer>
+</div>
 
 <script>
 (() => {
-  const API = "/psn/api/status";
-  const REFRESH_MS = 15000;
+  "use strict";
+  const API = "/psn/api/status", POLL = 12000;
   const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const inr = (n) => "₹" + Math.round(n).toLocaleString("en-IN");
-  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-  let data = null, filter = "all", lastOk = 0, lastAnswer = "";
-
-  function ago(ts) {
+  const short = (n) => n >= 1000 ? (n % 1000 ? (n / 1000).toFixed(1) : n / 1000) + "k" : String(n);
+  const now = () => Date.now() / 1000;
+  const ago = (ts) => {
     if (!ts) return "never";
-    const s = Math.max(0, Math.round(Date.now() / 1000 - ts));
-    if (s < 60) return s + " s ago";
-    if (s < 3600) return Math.round(s / 60) + " min ago";
-    if (s < 86400) return Math.round(s / 3600) + " h ago";
-    return Math.round(s / 86400) + " d ago";
-  }
-  const every = (sec) => sec < 60 ? `every ${sec} s` : `every ${Math.round(sec / 60)} min`;
-  const clock = (ts) => new Date(ts * 1000).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
-  const markup = (o) => (o.price && o.denomination) ? Math.round((o.price / o.denomination - 1) * 100) : 0;
-  const glyph = (inStock) => $(inStock ? "glyphIn" : "glyphOut").innerHTML;
-  const priceText = (o) => {
-    if (!o.price) return "Price on site";
-    const mk = markup(o);
-    return mk >= 1 ? `${inr(o.price)}, ${mk}% over face value` : mk <= -1 ? `${inr(o.price)}, ${-mk}% under face value` : "Face value";
+    const s = Math.max(0, Math.round(now() - ts));
+    return s < 60 ? s + "s ago" : s < 3600 ? Math.round(s / 60) + "m ago" : s < 86400 ? Math.round(s / 3600) + "h ago" : Math.round(s / 86400) + "d ago";
   };
+  const every = (s) => s < 60 ? `every ${s}s` : `every ${Math.round(s / 60)}m`;
+  const markup = (o) => (o.price && o.denomination) ? Math.round((o.price / o.denomination - 1) * 100) : 0;
   const plainError = (e) => {
-    if (!e) return "No PSN listings found on the last check. Retrying.";
-    if (/\b403\b|401/.test(e)) return "The store is refusing automatic checks right now. Retrying with longer gaps.";
-    if (/\b429\b/.test(e)) return "The store asked for fewer checks. Slowing down and retrying.";
-    if (/\b5\d\d\b/.test(e)) return "The store's site is having trouble. Retrying.";
-    if (/timeout|timed out|Connect|Network/i.test(e)) return "The store didn't respond. Retrying.";
-    if (/no PSN/i.test(e)) return "Couldn't find PSN cards on the store's page. Its layout may have changed.";
-    return "Couldn't read the store's page. Retrying.";
+    if (!e) return "No PSN listings on the last check";
+    if (/\b40[13]\b/.test(e)) return "Store is refusing automatic checks; retrying slower";
+    if (/\b429\b/.test(e)) return "Store asked for fewer checks; slowing down";
+    if (/\b5\d\d\b/.test(e)) return "Store's site is having trouble; retrying";
+    if (/timeout|timed out|connect|network/i.test(e)) return "Store didn't respond; retrying";
+    return "Couldn't read the store's page; retrying";
   };
 
+  // ---------------------------------------------------------------- persisted UI state
+  const saved = (() => { try { return JSON.parse(localStorage.getItem("psn-ui") || "{}"); } catch { return {}; } })();
+  const ui = { tab: saved.tab || "matrix", inOnly: !!saved.inOnly, face: !!saved.face, values: saved.values || [], sort: saved.sort || "stock", alerts: !!saved.alerts, open: {} };
+  const save = () => { try { localStorage.setItem("psn-ui", JSON.stringify({ tab: ui.tab, inOnly: ui.inOnly, face: ui.face, values: ui.values, sort: ui.sort, alerts: ui.alerts })); } catch {} };
+
+  let data = null, lastFetch = 0, prevIn = null, flashTimer = null;
+
+  // ---------------------------------------------------------------- data
   async function load() {
     try {
       const r = await fetch(API, { cache: "no-store" });
       if (!r.ok) throw new Error("HTTP " + r.status);
       data = await r.json();
-      lastOk = Date.now();
+      lastFetch = Date.now();
+      detectRestocks();
       render();
-    } catch (e) {
-      renderLive(e);
+    } catch (e) { tick(); }
+  }
+
+  const visible = (o) => (!ui.values.length || ui.values.includes(o.denomination || 0)) &&
+                         (!ui.inOnly || o.status === "in") && (!ui.face || markup(o) < 1);
+
+  // ---------------------------------------------------------------- restock detection (browser alerts)
+  function detectRestocks() {
+    const ins = new Map(data.offers.filter((o) => o.status === "in").map((o) => [o.store + "|" + o.url, o]));
+    if (prevIn) {
+      const fresh = [...ins.entries()].filter(([k]) => !prevIn.has(k)).map(([, o]) => o);
+      if (fresh.length) notify(fresh);
+    }
+    prevIn = ins;
+  }
+  function notify(list) {
+    const msg = list.map((o) => `${o.denomination ? inr(o.denomination) : "Card"} at ${o.store}`).join(", ");
+    $("announce").textContent = "In stock now: " + msg;
+    if (!ui.alerts) return;
+    beep();
+    if ("Notification" in window && Notification.permission === "granted") {
+      const opts = { body: msg, icon: "/psn/icon.svg", tag: "psn-restock", renotify: true, requireInteraction: true, data: { url: list[0].url } };
+      navigator.serviceWorker?.ready.then((reg) => reg.showNotification("PSN card in stock", opts)).catch(() => new Notification("PSN card in stock", opts));
+    }
+    if (document.hidden) {
+      clearInterval(flashTimer);
+      let on = false;
+      flashTimer = setInterval(() => { document.title = (on = !on) ? "● IN STOCK" : baseTitle(); }, 1000);
     }
   }
-
-  function renderLive(err) {
-    const live = $("live"), age = data ? Date.now() / 1000 - data.now : Infinity;
-    const stale = !!err || age > 120;
-    live.classList.toggle("stale", stale);
-    $("liveText").textContent = !data ? "Can't reach the watcher" : stale ? "Offline, data " + ago(data.now) : "Live, updated " + ago(data.now);
-    $("banner").hidden = !stale || !data;
-    if (stale && data) $("banner").textContent = "Can't reach the watcher right now. What you see is from " + ago(data.now) + ". Phone alerts still work if the VM is running.";
+  function beep() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      [0, 0.18, 0.36].forEach((t, i) => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.frequency.value = i === 2 ? 1320 : 880; o.type = "sine";
+        g.gain.setValueAtTime(0.0001, ctx.currentTime + t);
+        g.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + t + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + t + 0.16);
+        o.connect(g).connect(ctx.destination); o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + 0.17);
+      });
+    } catch {}
   }
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) { clearInterval(flashTimer); document.title = baseTitle(); load(); }
+  });
+  const baseTitle = () => {
+    const n = data ? data.offers.filter((o) => o.status === "in").length : 0;
+    return n ? `(${n}) In stock · PSN India` : "PSN India stock";
+  };
 
+  // ---------------------------------------------------------------- status strip (every second)
+  function tick() {
+    const stale = !data || Date.now() - lastFetch > POLL * 3;
+    $("live").classList.toggle("off", stale);
+    $("liveTxt").textContent = !data ? "Offline" : stale ? "Offline · " + ago(data.now) : "Live";
+    $("banner").hidden = !(data && stale);
+    if (data && stale) $("banner").textContent = `Can't reach the watcher. Showing data from ${ago(data.now)}. Phone alerts keep working while the server is up.`;
+    if (!data) return;
+    const next = Math.min(...data.health.map((h) => (h.last_run || data.now) + h.interval)) - now();
+    $("sNext").textContent = next > 0 ? Math.ceil(next) + "s" : "now";
+  }
+  setInterval(tick, 1000);
+
+  // ---------------------------------------------------------------- render
   function render() {
-    renderLive();
-    const offers = data.offers;
-    const inStock = offers.filter((o) => o.status === "in").sort((a, b) => (a.denomination || 0) - (b.denomination || 0));
-    const watched = data.health.length;
-
-    // ---- the answer
-    let answer, lede;
-    if (inStock.length === 1) {
-      const o = inStock[0];
-      answer = `${o.denomination ? inr(o.denomination) : "A card"} is in stock at ${o.store}.`;
-    } else if (inStock.length > 1) {
-      const stores = new Set(inStock.map((o) => o.store));
-      answer = `${inStock.length} cards are in stock right now.`;
-      lede = `At ${[...stores].join(", ")}. Buy fast: restocks usually sell out within hours.`;
-    } else {
-      answer = "Nothing to buy yet.";
-    }
-    if (!lede) {
-      if (inStock.length) lede = "Buy fast: restocks usually sell out within hours.";
-      else {
-        const lastIn = data.events.find((e) => e.new === "in");
-        lede = `Watching ${watched} stores and ${offers.length} listings. Your phone gets an alert the moment one comes in stock.` +
-               (lastIn ? ` Last restock: ${lastIn.denomination ? inr(lastIn.denomination) : "a card"} at ${lastIn.store}, ${ago(lastIn.ts)}.` : "");
-      }
-    }
-    const h1 = $("answer");
-    if (answer !== lastAnswer) { h1.classList.remove("fresh"); void h1.offsetWidth; h1.classList.add("fresh"); lastAnswer = answer; }
-    h1.textContent = answer;
-    h1.classList.toggle("yes", inStock.length > 0);
-    $("lede").textContent = lede;
-    document.title = inStock.length ? `(${inStock.length}) In stock: PSN India` : "PSN India stock";
-
-    const buy = $("buyList");
-    buy.hidden = !inStock.length;
-    buy.innerHTML = inStock.map((o) => {
-      return `<li class="buy">
-        <span class="val">${o.denomination ? inr(o.denomination) : esc(o.title)}</span>
-        <a class="btn" href="${esc(o.url)}" target="_blank" rel="noopener">Buy at ${esc(o.store)}</a>
-        <span class="where">${priceText(o)}. In stock for ${ago(o.since).replace(" ago", "")}.</span>
-      </li>`;
-    }).join("");
-
-    // ---- chips
-    const denoms = [...new Set(offers.map((o) => o.denomination || 0))].sort((a, b) => a - b);
-    if (filter !== "all" && !denoms.includes(+filter)) filter = "all";
-    const count = (d) => offers.filter((o) => (o.denomination || 0) === d && o.status === "in").length;
-    $("chips").innerHTML = [`<button class="chip" data-f="all" aria-pressed="${filter === "all"}">All</button>`]
-      .concat(denoms.map((d) => {
-        const n = count(d);
-        return `<button class="chip" data-f="${d}" aria-pressed="${filter == d}">${d ? inr(d) : "Other"}${n ? `<span class="n">${n} in stock</span>` : ""}</button>`;
-      })).join("");
-
-    // ---- cards grouped by face value
-    const shown = denoms.filter((d) => filter === "all" || filter == d);
-    $("denoms").innerHTML = shown.length ? shown.map((d) => {
-      const list = offers.filter((o) => (o.denomination || 0) === d)
-        .sort((a, b) => (a.status === "in" ? 0 : 1) - (b.status === "in" ? 0 : 1) || (a.price || 1e9) - (b.price || 1e9));
-      const n = list.filter((o) => o.status === "in").length;
-      return `<div class="denom">
-        <div class="denom-head"><h3>${d ? inr(d) : "Other"}</h3><span>${n ? `In stock at ${n} of ${list.length} stores` : list.length === 1 ? "Sold out" : `Sold out at all ${list.length} stores`}</span></div>
-        <ul class="rows">${list.map((o) => {
-          const mk = markup(o), isIn = o.status === "in";
-          const priceBit = !o.price ? "Price on site" : mk >= 1 ? `${inr(o.price)}<span class="mk">+${mk}%</span>` : inr(o.price);
-          return `<li class="row ${isIn ? "in" : "out"}"><a href="${esc(o.url)}" target="_blank" rel="noopener">
-            ${glyph(isIn)}
-            <span><span class="store">${esc(o.store)}</span><br><span class="meta">${priceBit}</span></span>
-            <span class="state">${isIn ? "In stock" : "Sold out"}</span></a></li>`;
-        }).join("")}</ul></div>`;
-    }).join("") : `<p class="empty">No listings found yet. The first checks finish within a few minutes of the watcher starting.</p>`;
-
-    // ---- stores
-    $("stores").innerHTML = data.health.map((h) => `<li>
-        <span class="name">${esc(h.name)}</span>
-        <span class="${h.ok ? "ok" : "bad"}">${h.ok ? (h.in_stock ? `${h.in_stock} in stock` : "Working") : "Can't read"}</span>
-        <span class="when">${h.ok ? `Checked ${ago(h.last_run)}, ${every(h.interval)}` : esc(plainError(h.error))}</span>
-      </li>`).join("");
-    const sk = data.skipped || [];
-    $("skippedBox").hidden = !sk.length;
-    $("skippedTitle").textContent = `${sk.length} store${sk.length === 1 ? "" : "s"} you need to check yourself`;
-    $("skipped").innerHTML = sk.map((s) => `<li><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.name)}</a></li>`).join("");
-
-    // ---- events (skip the "first seen as sold out" noise)
-    const ev = data.events.filter((e) => e.old !== null || e.new === "in").slice(0, 25);
-    $("events").innerHTML = ev.length ? ev.map((e) => `<li>
-        <time datetime="${new Date(e.ts * 1000).toISOString()}">${clock(e.ts)}</time>
-        <span>${e.new === "in" ? `<span class="came">In stock:</span>` : "Sold out:"} ${e.denomination ? inr(e.denomination) : esc(e.title)} at ${esc(e.store)}</span>
-      </li>`).join("") : `<li class="none">No restocks yet. They'll show up here, and on your phone, as they happen.</li>`;
-
-    $("alertsText").textContent = data.alerts_on
-      ? "On. The ntfy app on your phone rings the moment a card comes in stock, with a button that opens the store. You'll also get a short summary every morning at 9."
-      : "Off. Set NTFY_TOPIC in /etc/psn-watch.env on the server to get phone alerts.";
+    tick();
+    const H = data.health, O = data.offers;
+    const okCount = H.filter((h) => h.ok).length;
+    $("sOk").textContent = `${okCount}/${H.length}`;
+    const lastIn = data.events.find((e) => e.new === "in");
+    $("sLast").textContent = lastIn ? ago(lastIn.ts) : "none yet";
+    document.title = baseTitle();
+    renderHero(O);
+    renderValues(O);
+    renderMatrix(O, H);
+    renderCards(O);
+    renderStores(H);
+    renderHistory();
+    $("foot").textContent = data.alerts_on ? "Phone alerts on: the ntfy app rings when a card comes in stock" : "Phone alerts off: set NTFY_TOPIC on the server";
   }
 
-  $("chips").addEventListener("click", (e) => {
-    const b = e.target.closest(".chip");
-    if (!b) return;
-    filter = b.dataset.f;
-    render();
+  function renderHero(O) {
+    const ins = O.filter((o) => o.status === "in").sort((a, b) => (a.denomination || 0) - (b.denomination || 0));
+    const v = $("verdict");
+    v.classList.toggle("yes", ins.length > 0);
+    if (!ins.length) {
+      v.innerHTML = `Nothing in stock <span class="x">right now</span>`;
+      $("subline").textContent = `Watching ${O.length} listings across ${data.health.length} stores. Your phone rings the moment one comes in stock.`;
+    } else {
+      v.textContent = ins.length === 1 ? `${ins[0].denomination ? inr(ins[0].denomination) : "A card"} in stock at ${ins[0].store}` : `${ins.length} cards in stock`;
+      $("subline").textContent = "Restocks usually sell out within hours. Tap to open the store.";
+    }
+    $("buys").hidden = !ins.length;
+    $("buys").innerHTML = ins.map((o) => {
+      const mk = markup(o);
+      return `<a class="buy" href="${esc(o.url)}" target="_blank" rel="noopener">
+        <span class="v">${o.denomination ? inr(o.denomination) : esc(o.title)}</span><span class="go">Buy ↗</span>
+        <span class="s">${esc(o.store)} · ${o.price ? inr(o.price) : "price on site"}${mk >= 1 ? ` · <span class="mk">+${mk}%</span>` : ""}</span></a>`;
+    }).join("");
+  }
+
+  function denoms(O) { return [...new Set(O.map((o) => o.denomination || 0))].sort((a, b) => a - b); }
+
+  function renderValues(O) {
+    const ds = denoms(O);
+    ui.values = ui.values.filter((d) => ds.includes(d));
+    $("values").innerHTML = `<button class="val" data-v="all" aria-pressed="${!ui.values.length}">All values</button>` +
+      ds.map((d) => {
+        const n = O.filter((o) => (o.denomination || 0) === d && o.status === "in").length;
+        return `<button class="val" data-v="${d}" aria-pressed="${ui.values.includes(d)}">${d ? inr(d) : "Other"}${n ? `<span class="c">${n}</span>` : ""}</button>`;
+      }).join("");
+    $("fIn").setAttribute("aria-pressed", ui.inOnly);
+    $("fFace").setAttribute("aria-pressed", ui.face);
+  }
+
+  function bestUrls(O) {
+    const best = new Map();
+    for (const o of O) {
+      if (o.status !== "in" || !o.price) continue;
+      const d = o.denomination || 0, b = best.get(d);
+      if (!b || o.price < b.price) best.set(d, o);
+    }
+    return new Set([...best.values()].map((o) => o.url));
+  }
+
+  function renderMatrix(O, H) {
+    const ds = denoms(O).filter((d) => !ui.values.length || ui.values.includes(d));
+    const listed = new Set(O.map((o) => o.store));
+    const stores = H.map((h) => h.name).filter((n) => listed.has(n));
+    const unlisted = H.map((h) => h.name).filter((n) => !listed.has(n));
+    $("mxNote").hidden = !unlisted.length;
+    $("mxNote").textContent = unlisted.length ? `${unlisted.join(", ")} ${unlisted.length === 1 ? "has" : "have"} no PSN listings right now. Still checked; a new listing shows up here automatically.` : "";
+    const by = new Map(O.map((o) => [o.store + "|" + (o.denomination || 0), o]));
+    const best = bestUrls(O);
+    const health = new Map(H.map((h) => [h.name, h]));
+    if (!O.length) {
+      $("mx").innerHTML = `<caption class="sr">Stock by store and face value</caption><tbody><tr><td class="empty" style="text-align:left">No listings yet. The first checks finish within a minute of the watcher starting.</td></tr></tbody>`;
+      $("mxm").innerHTML = `<p class="empty">No listings yet. The first checks finish within a minute of the watcher starting.</p>`;
+      return;
+    }
+    // desktop table
+    let html = `<caption class="sr">Stock by store and face value</caption><thead><tr><th scope="col">Store</th>`;
+    for (const d of ds) {
+      const col = O.filter((o) => (o.denomination || 0) === d), n = col.filter((o) => o.status === "in").length;
+      html += `<th scope="col"><span class="fv">${d ? inr(d) : "Other"}</span><span class="cnt ${n ? "has" : ""}">${n}/${col.length}</span></th>`;
+    }
+    html += `</tr></thead><tbody>`;
+    for (const s of stores) {
+      const h = health.get(s);
+      html += `<tr><th scope="row"><span class="dot ${h.ok ? "" : "bad"}" aria-hidden="true"></span>${esc(s)}<span class="sr">${h.ok ? ", working" : ", can't read"}</span></th>`;
+      for (const d of ds) {
+        const o = by.get(s + "|" + d);
+        if (!o) { html += `<td><span class="cell none"><span aria-hidden="true">–</span><span class="sr">${esc(s)} doesn't sell ${d ? inr(d) : "this"}</span></span></td>`; continue; }
+        const isIn = o.status === "in", mk = markup(o), dim = !visible(o);
+        const label = `${s}, ${d ? inr(d) : o.title}: ${isIn ? "in stock" : "sold out"}${o.price ? ", " + inr(o.price) : ""}${mk >= 1 ? `, ${mk}% over face value` : ""}`;
+        html += `<td><a class="cell ${isIn ? "in" : "out"} ${best.has(o.url) ? "best" : ""} ${dim ? "dim" : ""}" href="${esc(o.url)}" target="_blank" rel="noopener" aria-label="${esc(label)}">
+          <span class="g" aria-hidden="true">${isIn ? "●" : "✕"}</span><span class="p" aria-hidden="true">${o.price ? short(o.price) : ""}${mk >= 1 ? `<span class="mk">+${mk}%</span>` : ""}</span></a></td>`;
+      }
+      html += `</tr>`;
+    }
+    $("mx").innerHTML = html + `</tbody>`;
+    // phone rows
+    $("mxm").innerHTML = ds.map((d) => {
+      const col = O.filter((o) => (o.denomination || 0) === d).sort((a, b) => (a.status === "in" ? 0 : 1) - (b.status === "in" ? 0 : 1) || (a.price || 1e9) - (b.price || 1e9));
+      const shown = col.filter(visible), n = col.filter((o) => o.status === "in").length;
+      if (!shown.length) return "";
+      const open = ui.open[d] ?? n > 0;
+      return `<div class="fvrow"><button aria-expanded="${open}" data-fv="${d}">
+          <span class="fv">${d ? inr(d) : "Other"}</span>
+          <span class="dots" aria-hidden="true">${col.map((o) => `<i class="${o.status === "in" ? "in" : ""}"></i>`).join("")}</span>
+          <span class="cnt ${n ? "has" : ""}">${n}/${col.length}</span>
+          <svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+          <span class="sr">${n ? `${n} in stock` : "sold out everywhere"}</span>
+        </button>${open ? `<ul>${shown.map((o) => {
+          const mk = markup(o);
+          return `<li><a href="${esc(o.url)}" target="_blank" rel="noopener"><span>${esc(o.store)}${best.has(o.url) ? ' <span class="mono" style="color:var(--accent);font-size:11px">best</span>' : ""}</span>
+            <span class="pr">${o.price ? inr(o.price) : "–"}${mk >= 1 ? ` <span class="mk">+${mk}%</span>` : ""}</span>
+            <span class="st ${o.status === "in" ? "in" : "out"}">${o.status === "in" ? "● in stock" : "✕ sold out"}</span></a></li>`;
+        }).join("")}</ul>` : ""}</div>`;
+    }).join("") || `<p class="empty">Nothing matches these filters.</p>`;
+  }
+
+  function renderCards(O) {
+    const sorts = {
+      stock: (a, b) => (a.status === "in" ? 0 : 1) - (b.status === "in" ? 0 : 1) || (a.denomination || 0) - (b.denomination || 0),
+      value: (a, b) => (a.denomination || 0) - (b.denomination || 0) || (a.price || 0) - (b.price || 0),
+      price: (a, b) => (a.price || 1e9) - (b.price || 1e9),
+      store: (a, b) => a.store.localeCompare(b.store) || (a.denomination || 0) - (b.denomination || 0),
+    };
+    $("sort").value = ui.sort;
+    const list = O.filter(visible).sort(sorts[ui.sort]);
+    const best = bestUrls(O);
+    $("cards").innerHTML = list.map((o) => {
+      const isIn = o.status === "in", mk = markup(o);
+      return `<a class="card ${isIn ? "in" : "out"}" href="${esc(o.url)}" target="_blank" rel="noopener">
+        <span class="top"><span class="fv">${o.denomination ? inr(o.denomination) : "Other"}</span><span class="st">${isIn ? "● in stock" : "✕ sold out"}</span></span>
+        <span class="meta">${esc(o.store)}${best.has(o.url) ? ' · <span class="mono" style="color:var(--accent)">best price</span>' : ""}</span>
+        <span class="meta"><span class="mono">${o.price ? inr(o.price) : "price on site"}</span>${mk >= 1 ? ` <span class="mk mono">+${mk}%</span>` : ""} · ${isIn ? "in stock" : "sold out"} ${ago(o.since)}</span>
+      </a>`;
+    }).join("") || `<p class="empty">Nothing matches these filters.</p>`;
+  }
+
+  function renderStores(H) {
+    $("st").querySelector("tbody").innerHTML = H.map((h) => {
+      const hist = h.history || [], pad = Math.max(0, 48 - hist.length);
+      const bars = "<i class='e'></i>".repeat(pad) + hist.map((x) => `<i class="${x[1] ? "" : "f"}"></i>`).join("");
+      const up = h.uptime == null ? "no checks yet" : `${h.uptime}% of the last ${hist.length} checks worked`;
+      return `<tr>
+        <th scope="row" class="name">${esc(h.name)}</th>
+        <td>${h.ok ? `<span class="ok">● Working</span>${h.in_stock ? ` <span class="num">${h.in_stock} in stock</span>` : ""}` : `<span class="bad">✕ Can't read</span><div class="err">${esc(plainError(h.error))}</div>`}</td>
+        <td class="num c-every">${every(h.interval)}</td>
+        <td class="num">${ago(h.last_run)}</td>
+        <td class="c-bars"><div class="bars" role="img" aria-label="${esc(up)}" title="${esc(up)}">${bars}</div></td>
+        <td class="c-kind"><span class="kind">${h.kind === "woocommerce" || h.kind === "shopify" ? "API" : "browser"}</span></td>
+      </tr>`;
+    }).join("");
+    const sk = data.skipped || [];
+    $("skipped").hidden = !sk.length;
+    $("skTitle").textContent = `${sk.length} store${sk.length === 1 ? "" : "s"} to check yourself`;
+    $("skList").innerHTML = sk.map((s) => `<li><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.name)} ↗</a></li>`).join("");
+  }
+
+  function renderHistory() {
+    const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    const grid = Array.from({ length: 7 }, () => new Array(24).fill(0));
+    const ins = data.events.filter((e) => e.new === "in");
+    for (const e of ins) {
+      const t = new Date(e.ts * 1000);
+      grid[(t.getDay() + 6) % 7][t.getHours()]++;
+    }
+    let html = `<span></span>` + Array.from({ length: 24 }, (_, h) => `<span class="h">${h % 3 === 0 ? h : ""}</span>`).join("");
+    days.forEach((d, i) => {
+      html += `<span class="d">${d}</span>` + grid[i].map((n, h) => `<i data-n="${Math.min(n, 3)}" title="${d} ${h}:00: ${n} restock${n === 1 ? "" : "s"}"></i>`).join("");
+    });
+    $("heat").innerHTML = html;
+    $("heat").setAttribute("aria-label", ins.length ? `${ins.length} restocks in the last 30 days` : "No restocks recorded yet");
+    let peak = [0, 0, 0];
+    grid.forEach((row, d) => row.forEach((n, h) => { if (n > peak[0]) peak = [n, d, h]; }));
+    const hourTotals = Array.from({ length: 24 }, (_, h) => grid.reduce((a, r) => a + r[h], 0));
+    const bestHour = hourTotals.indexOf(Math.max(...hourTotals));
+    $("heatHint").textContent = ins.length
+      ? `${ins.length} restock${ins.length === 1 ? "" : "s"} in 30 days. Busiest slot: ${days[peak[1]]} ${String(peak[2]).padStart(2, "0")}:00. Most restocks overall land around ${String(bestHour).padStart(2, "0")}:00 (your time).`
+      : `No restocks recorded yet. Watching since ${new Date(data.started * 1000).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}; this fills in as they happen.`;
+    const ev = data.events.filter((e) => e.old !== null || e.new === "in").slice(0, 80);
+    $("log").innerHTML = ev.length ? ev.map((e) => `<li><time datetime="${new Date(e.ts * 1000).toISOString()}">${new Date(e.ts * 1000).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false })}</time>
+      <span>${e.new === "in" ? '<span class="in">● In stock</span>' : "✕ Sold out"} · ${e.denomination ? inr(e.denomination) : esc(e.title)} at ${esc(e.store)}</span></li>`).join("")
+      : `<li class="empty" style="display:block;border:0;padding:0">No changes yet.</li>`;
+  }
+
+  // ---------------------------------------------------------------- interaction
+  const TABS = ["matrix", "cards", "stores", "history"];
+  function showTab(name, focus) {
+    ui.tab = TABS.includes(name) ? name : "matrix"; save();
+    for (const t of TABS) {
+      const tab = $("t-" + t), on = t === ui.tab;
+      tab.setAttribute("aria-selected", on); tab.tabIndex = on ? 0 : -1;
+      $("p-" + t).hidden = !on;
+      if (on && focus) tab.focus();
+    }
+    $("values").hidden = ui.tab === "stores" || ui.tab === "history";
+    document.querySelector(".filters").hidden = ui.tab === "stores" || ui.tab === "history";
+    if (location.hash.slice(1) !== ui.tab) history.replaceState(null, "", "#" + ui.tab);
+  }
+  $("tabs").addEventListener("click", (e) => { const t = e.target.closest("[role=tab]"); if (t) showTab(t.id.slice(2)); });
+  $("tabs").addEventListener("keydown", (e) => {
+    const i = TABS.indexOf(ui.tab);
+    if (e.key === "ArrowRight") showTab(TABS[(i + 1) % 4], true);
+    else if (e.key === "ArrowLeft") showTab(TABS[(i + 3) % 4], true);
+    else if (e.key === "Home") showTab(TABS[0], true);
+    else if (e.key === "End") showTab(TABS[3], true);
+    else return;
+    e.preventDefault();
+  });
+  $("values").addEventListener("click", (e) => {
+    const b = e.target.closest(".val"); if (!b) return;
+    if (b.dataset.v === "all") ui.values = [];
+    else { const v = +b.dataset.v; ui.values = ui.values.includes(v) ? ui.values.filter((x) => x !== v) : [...ui.values, v]; }
+    save(); render();
+  });
+  $("fIn").addEventListener("click", () => { ui.inOnly = !ui.inOnly; save(); render(); });
+  $("fFace").addEventListener("click", () => { ui.face = !ui.face; save(); render(); });
+  $("sort").addEventListener("change", (e) => { ui.sort = e.target.value; save(); render(); });
+  $("mxm").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-fv]"); if (!b) return;
+    const d = +b.dataset.fv; ui.open[d] = b.getAttribute("aria-expanded") !== "true"; render();
+    document.querySelector(`#mxm button[data-fv="${d}"]`)?.focus();
   });
 
-  // live "updated x s ago" without refetching
-  setInterval(() => data && renderLive(Date.now() - lastOk > REFRESH_MS * 3 ? new Error("stale") : null), 5000);
-  setInterval(load, REFRESH_MS);
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) load(); });
-  load();
+  function renderBell() {
+    const b = $("bell"), supported = "Notification" in window;
+    const on = ui.alerts && (!supported || Notification.permission === "granted");
+    b.setAttribute("aria-pressed", on);
+    $("bellTxt").textContent = !supported ? (ui.alerts ? "Sound alerts on" : "Sound alerts off")
+      : Notification.permission === "denied" ? "Alerts blocked in browser" : on ? "Browser alerts on" : "Browser alerts off";
+  }
+  $("bell").addEventListener("click", async () => {
+    if (!ui.alerts && "Notification" in window && Notification.permission === "default") {
+      const p = await Notification.requestPermission();
+      ui.alerts = p === "granted";
+    } else ui.alerts = !ui.alerts;
+    if (ui.alerts) beep();             // also unlocks audio on iOS/Chrome
+    save(); renderBell();
+  });
 
-  // install to home screen
-  let deferred = null;
-  window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferred = e; $("installBtn").hidden = false; });
-  $("installBtn").addEventListener("click", async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; $("installBtn").hidden = true; });
+  document.addEventListener("keydown", (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey || /input|select|textarea/i.test(e.target.tagName)) return;
+    if (e.key >= "1" && e.key <= "4") showTab(TABS[+e.key - 1]);
+    else if (e.key === "i") $("fIn").click();
+    else if (e.key === "m") $("fFace").click();
+    else if (e.key === "b") $("bell").click();
+  });
+
+  showTab((location.hash || "").slice(1) || ui.tab);
+  renderBell();
+  load();
+  setInterval(load, POLL);
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("/psn/sw.js", { scope: "/psn" }).catch(() => {});
 })();
 </script>
