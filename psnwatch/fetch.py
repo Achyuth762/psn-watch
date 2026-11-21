@@ -162,7 +162,8 @@ class Fetcher:
         r = self._get(url, params, {"Accept": "application/json"})
         if r.status_code != 200:
             raise FetchError(f"HTTP {r.status_code} for {r.url}", r.status_code, _retry_after(r))
-        if "json" not in r.headers.get("content-type", ""):
+        ctype = r.headers.get("content-type", "")
+        if "json" not in ctype and "javascript" not in ctype:   # Shopify serves /products/x.js as text/javascript
             raise FetchError(f"expected JSON, got {r.headers.get('content-type') or 'nothing'} from {r.url}"
                              " (bot check page?)", r.status_code)
         try:

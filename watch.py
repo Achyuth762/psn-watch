@@ -45,6 +45,11 @@ def pick_stores(cfg: dict, only: str | None, browser: bool) -> list[dict]:
     if only:
         wanted = {w.strip().lower() for w in only.split(",")}
         stores = [s for s in cfg["stores"] if s["name"].lower() in wanted]
+    if os.getenv("PSN_ON_VM") == "1":
+        skipped = [s["name"] for s in stores if s.get("blocks_cloud")]
+        if skipped:
+            logging.info("skipping stores that refuse cloud-server traffic: %s", ", ".join(skipped))
+        stores = [s for s in stores if not s.get("blocks_cloud")]
     if not browser:
         stores = [s for s in stores if s["type"] in HTTP_ONLY or s.get("render", "auto") is not True]
     return stores

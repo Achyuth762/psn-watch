@@ -1,5 +1,6 @@
 # psn-watch config (v2, always-on)
 #
+# blocks_cloud: true = the store refuses traffic from cloud servers; skipped on the VM, checked when you run locally
 # type:      woocommerce | shopify | page | variants_text   (see README)
 # interval:  seconds between checks for that store (defaults: API 20 s, HTTP page 60 s, browser page 90 s)
 # render:    true = always headless Chromium, "auto" = plain HTTP first, browser if blocked
@@ -20,12 +21,12 @@ stores:
   - {name: GamePrex,           type: woocommerce, url: "https://gameprex.in"}
   - {name: Games Kart,         type: woocommerce, url: "https://gamekart.in"}
   - {name: NI Store,           type: woocommerce, url: "https://www.nistore.in"}
-  - {name: Sheenu Game Center, type: woocommerce, url: "https://sheenugamecenter.com"}
+  - {name: Sheenu Game Center, type: woocommerce, url: "https://sheenugamecenter.com", blocks_cloud: true}
   - {name: HG World,           type: woocommerce, url: "https://hgworld.in"}
-  - {name: KRG Kart,           type: woocommerce, url: "https://krgkart.com"}
+  - {name: KRG Kart,           type: woocommerce, url: "https://krgkart.com", blocks_cloud: true}
   # No PSN listing on 17 Nov — re-searched every 5 min so a new listing is caught quickly.
   - {name: Hitech Gamez, type: woocommerce, url: "https://hitechgamez.in", discover_every: 300, expect_listings: false}
-  - {name: E2Z Store,    type: woocommerce, url: "https://e2zstore.com",   discover_every: 300, expect_listings: false}
+  - {name: E2Z Store,    type: woocommerce, url: "https://e2zstore.com",   discover_every: 300, expect_listings: false, blocks_cloud: true}
 
   # ---------------- Shopify ----------------
   - {name: Simply Gaming, type: shopify, url: "https://www.simplygaming.in"}
@@ -40,6 +41,7 @@ stores:
 
   - name: Play-Asia
     type: page
+    blocks_cloud: true   # answered HTTP 403 to the Azure VM on 21 Nov 2026
     render: auto
     interval: 60
     listings: ["https://www.play-asia.com/en/search/psn+india"]
@@ -47,6 +49,7 @@ stores:
 
   - name: MD Computers
     type: page
+    blocks_cloud: true   # answered HTTP 403 to the Azure VM on 21 Nov 2026
     render: auto
     interval: 60
     listings: ["https://mdcomputers.in/catalog/gift-card"]
@@ -64,6 +67,7 @@ stores:
 
   - name: Croma
     type: page
+    blocks_cloud: true   # answered HTTP 403 to the Azure VM on 21 Nov 2026
     render: true
     interval: 120
     products:
@@ -72,6 +76,7 @@ stores:
 
   - name: Amazon
     type: page
+    blocks_cloud: true   # answered HTTP 503 to the Azure VM on 21 Nov 2026
     render: auto
     interval: 180
     listings: ["https://www.amazon.in/s?k=playstation+wallet+top+up+india"]

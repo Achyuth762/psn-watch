@@ -240,3 +240,17 @@ def test_restock_message_headers_are_ascii(monkeypatch):
     assert errs == []
     h = captured["headers"]
     assert h["Priority"] == "5" and "%E2%82%B9" in h["Click"] and h["Title"].startswith("IN STOCK: PSN Rs 4,000")
+
+
+def test_get_json_accepts_shopify_javascript_content_type():
+    import httpx
+    from psnwatch.fetch import Fetcher
+    f = Fetcher(use_browser=False)
+    f.http = httpx.Client(transport=httpx.MockTransport(lambda req: httpx.Response(
+        200, headers={"content-type": "text/javascript; charset=utf-8"}, content=b'{"handle": "psn-1000"}')))
+    assert f.get_json("https://s/products/psn-1000.js") == {"handle": "psn-1000"}
+    f.http = httpx.Client(transport=httpx.MockTransport(lambda req: httpx.Response(
+        200, headers={"content-type": "text/html"}, content=b"<html>bot check</html>")))
+    import pytest
+    with pytest.raises(FetchError):
+        f.get_json("https://s/x")
