@@ -289,3 +289,17 @@ def test_dashboard_serves_page_api_and_hides_unwatched_stores(tmp_path):
             assert err.code == 404
     finally:
         srv.shutdown()
+
+
+def test_dashboard_reports_ui_version(tmp_path):
+    import json
+    import urllib.request
+    from psnwatch import web
+    st = {"name": "W", "type": "woocommerce", "url": "https://w"}
+    e = make_engine(tmp_path, [st], Rec(lambda u, p: []))
+    srv = web.start(e, "127.0.0.1", 0)
+    try:
+        d = json.loads(urllib.request.urlopen(f"http://127.0.0.1:{srv.server_address[1]}/psn/api/status").read())
+        assert d["ui"] == web.ui_version() and len(d["ui"]) == 12
+    finally:
+        srv.shutdown()
