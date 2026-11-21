@@ -44,6 +44,8 @@ class FakeFetcher:
     ("Steam Wallet Gift Card ₹150 INR – For Indian Accounts", False),
     ("Horizon Call of the Mountain VR Voucher Code PS5", False),
     ("PlayStation Plus Essential 3 Month Card", False),
+    ("PlayStation PS5 (PS5 God Of War Ragnarok Digital Voucher Code) (Instant Delivery on WhatsApp)", False),
+    ("PlayStation Gift Card India – PSN Code", True),
 ])
 def test_is_psn_india_card(title, ok):
     assert is_psn_india_card(title) is ok
