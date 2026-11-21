@@ -381,7 +381,7 @@ footer kbd { font: 500 11px/1 var(--mono); border: 1px solid var(--line-2); bord
   const ui = { tab: saved.tab || "matrix", inOnly: !!saved.inOnly, face: !!saved.face, values: saved.values || [], sort: saved.sort || "stock", alerts: !!saved.alerts, open: {} };
   const save = () => { try { localStorage.setItem("psn-ui", JSON.stringify({ tab: ui.tab, inOnly: ui.inOnly, face: ui.face, values: ui.values, sort: ui.sort, alerts: ui.alerts })); } catch {} };
 
-  let data = null, lastFetch = 0, prevIn = null, flashTimer = null;
+  let data = null, lastFetch = 0, prevIn = null, flashTimer = null, uiSeen = null;
 
   // ---------------------------------------------------------------- data
   async function load() {
@@ -390,6 +390,11 @@ footer kbd { font: 500 11px/1 var(--mono); border: 1px solid var(--line-2); bord
       if (!r.ok) throw new Error("HTTP " + r.status);
       data = await r.json();
       lastFetch = Date.now();
+      // auto-update: a newer dashboard was deployed while this page (or the installed app) stayed open
+      if (data.ui) {
+        if (uiSeen && data.ui !== uiSeen) { navigator.serviceWorker?.getRegistration("/psn").then((r) => r && r.update()); location.reload(); return; }
+        uiSeen = data.ui;
+      }
       detectRestocks();
       render();
     } catch (e) { tick(); }
@@ -709,7 +714,12 @@ footer kbd { font: 500 11px/1 var(--mono); border: 1px solid var(--line-2); bord
   renderBell();
   load();
   setInterval(load, POLL);
-  if ("serviceWorker" in navigator) navigator.serviceWorker.register("/psn/sw.js", { scope: "/psn" }).catch(() => {});
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/psn/sw.js", { scope: "/psn", updateViaCache: "none" }).then((r) => r.update()).catch(() => {});
+    // a new worker took over: load the matching page
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => { if (!reloaded && uiSeen) { reloaded = true; location.reload(); } });
+  }
 })();
 </script>
 </body>

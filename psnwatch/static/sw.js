@@ -1,6 +1,6 @@
 // Service worker: makes the dashboard installable, shows the last page offline,
 // and opens the store when a restock notification is tapped.
-const CACHE = "psn-v2";
+const CACHE = "psn-v3";
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(["/psn", "/psn/icon.svg"]))); self.skipWaiting(); });
 self.addEventListener("activate", (e) => e.waitUntil(
   caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim())));
