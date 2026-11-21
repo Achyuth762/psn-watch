@@ -166,11 +166,11 @@ def test_page_in_stock_must_be_confirmed(tmp_path):
     e = make_engine(tmp_path, [st], Rec(html_fn=lambda u: next(reads)))
     t = time.time
     import psnwatch.engine as eng
-    eng.time.sleep = lambda s: None                            # skip the 3 s confirmation wait
+    orig, eng.time.sleep = eng.time.sleep, (lambda s: None)    # skip the 3 s confirmation wait
     try:
         offers, err = e.run_store_once(st)
     finally:
-        eng.time.sleep = time.sleep
+        eng.time.sleep = orig
     e.process(st, offers, err)
     assert not any(a[0] == "restock" for a in e.sent)          # flicker didn't alert
     assert t                                                   # keep linters quiet
@@ -301,5 +301,100 @@ def test_dashboard_reports_ui_version(tmp_path):
     try:
         d = json.loads(urllib.request.urlopen(f"http://127.0.0.1:{srv.server_address[1]}/psn/api/status").read())
         assert d["ui"] == web.ui_version() and len(d["ui"]) == 12
+    finally:
+        srv.shutdown()
+
+
+# ------------------------------------------------------------------ wishlist, history, settings
+def test_wishlist_routes_matches_loud_and_others_quiet_once(tmp_path):
+    from psnwatch import prefs
+    st = {"name": "W", "type": "woocommerce", "url": "https://w"}
+    e = make_engine(tmp_path, [st], Rec(lambda u, p: []), remind_every_min=0.0001)
+    prefs.save(e.db, {"want": [1000], "max_markup": 5, "others": "quiet"})
+    a = Offer("W", "PSN Rs 1000", "https://w/1", IN, 1020, 1000)      # +2% -> on the list
+    b = Offer("W", "PSN Rs 2000", "https://w/2", IN, 2000, 2000)      # value not wanted
+    c = Offer("W", "PSN Rs 1000 B", "https://w/3", IN, 1300, 1000)    # +30% -> too pricey
+    e.process(st, [a, b, c], None)
+    kinds = {k: [o.url for o in args[0]] for k, args in e.sent}
+    assert kinds["restock"] == ["https://w/1"]
+    assert sorted(kinds["restock_quiet"]) == ["https://w/2", "https://w/3"]
+    e.sent.clear()
+    e.db.conn.execute("UPDATE offers SET last_alert=0")            # pretend the reminder interval passed
+    e.process(st, [Offer("W", "PSN Rs 1000", "https://w/1", IN, 1020, 1000),
+                   Offer("W", "PSN Rs 2000", "https://w/2", IN, 2000, 2000)], None)
+    assert [k for k, _ in e.sent] == ["restock"]                    # only the wanted one repeats
+
+
+def test_wishlist_off_and_validation(tmp_path):
+    import pytest as _pt
+    from psnwatch import prefs
+    st = {"name": "W", "type": "woocommerce", "url": "https://w"}
+    e = make_engine(tmp_path, [st], Rec(lambda u, p: []))
+    prefs.save(e.db, {"want": [500], "others": "off"})
+    e.process(st, [Offer("W", "PSN Rs 2000", "https://w/2", IN, 2000, 2000)], None)
+    assert not e.sent
+    assert prefs.load(e.db) == {"want": [500], "max_markup": None, "others": "off"}
+    for bad in ({"want": "1000"}, {"want": [True]}, {"max_markup": "x"}, {"others": "loudest"}, [1]):
+        with _pt.raises(ValueError):
+            prefs.clean(bad)
+    assert prefs.matches({"want": [], "max_markup": None, "others": "quiet"}, None, None)
+
+
+def test_item_history_spans_and_prices(tmp_path):
+    db = DB(str(tmp_path / "h.db"))
+    k = "S|https://s/1"
+    db.record([Offer("S", "PSN Rs 1000", "https://s/1", OUT, 1100, 1000)], now=100)
+    db.record([Offer("S", "PSN Rs 1000", "https://s/1", IN, 1050, 1000)], now=200)
+    db.record([Offer("S", "PSN Rs 1000", "https://s/1", OUT, 1050, 1000)], now=500)
+    db.record([Offer("S", "PSN Rs 1000", "https://s/1", IN, 1000, 1000)], now=900)
+    h = db.item_history(k)
+    assert h["spans"] == [[200, 500], [900, None]]
+    assert h["prices"] == [[100, 1100], [200, 1050], [900, 1000]]
+    assert [x["new"] for x in h["events"]] == ["out", "in", "out", "in"]
+
+
+def test_settings_endpoints_need_the_key(tmp_path, monkeypatch):
+    import json
+    import urllib.error
+    import urllib.request
+    from urllib.parse import quote
+    from psnwatch import web
+    monkeypatch.setenv("PSN_ADMIN_KEY", "s3cret-key")
+    monkeypatch.delenv("NTFY_TOPIC", raising=False)
+    sent = []
+    monkeypatch.setattr(web.notify, "send", lambda *a, **k: sent.append(a) or [])
+    st = {"name": "W", "type": "woocommerce", "url": "https://w"}
+    e = make_engine(tmp_path, [st], Rec(lambda u, p: []))
+    e.db.record([Offer("W", "PSN Rs 1000", "https://w/1", IN, 1300, 1000)], now=time.time())
+    srv = web.start(e, "127.0.0.1", 0)
+    base = f"http://127.0.0.1:{srv.server_address[1]}"
+
+    def post(path, body=None, key=None):
+        req = urllib.request.Request(base + path, data=json.dumps(body or {}).encode(), method="POST",
+                                     headers={"Content-Type": "application/json", **({"X-PSN-Key": key} if key else {})})
+        try:
+            r = urllib.request.urlopen(req)
+            return r.status, json.loads(r.read())
+        except urllib.error.HTTPError as err:
+            return err.code, json.loads(err.read())
+    try:
+        assert post("/psn/api/prefs", {"want": [1000]})[0] == 403
+        assert post("/psn/api/prefs", {"want": [1000]}, "wrong")[0] == 403
+        assert post("/psn/api/key-check", key="s3cret-key") == (200, {"ok": True})
+        code, d = post("/psn/api/prefs", {"want": [1000], "max_markup": 10, "others": "off"}, "s3cret-key")
+        assert code == 200 and d["prefs"]["want"] == [1000]
+        assert post("/psn/api/prefs", {"want": ["x"]}, "s3cret-key")[0] == 400
+        s = json.loads(urllib.request.urlopen(base + "/psn/api/status").read())
+        assert s["admin"] is True and s["prefs"]["max_markup"] == 10
+        assert s["offers"][0]["match"] is False and s["offers"][0]["key"] == "W|https://w/1"   # +30% > 10%
+        assert "s3cret" not in json.dumps(s)                                                    # key never leaks
+        assert post("/psn/api/test", key="s3cret-key")[0] == 200 and sent
+        assert post("/psn/api/test", key="s3cret-key")[0] == 429                                # rate-limited
+        assert post("/psn/api/unlock")[0] == 503                                                # no ntfy topic set
+        h = json.loads(urllib.request.urlopen(base + "/psn/api/item?key=" + quote("W|https://w/1")).read())
+        assert h["spans"] and h["spans"][0][1] is None
+        for _ in range(10):
+            post("/psn/api/prefs", {}, "nope")
+        assert post("/psn/api/key-check", key="s3cret-key")[0] == 429                           # locked out
     finally:
         srv.shutdown()
