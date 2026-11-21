@@ -25,6 +25,18 @@ STATIC = Path(__file__).resolve().parent / "static"
 STALE_AFTER = 6 * 3600          # hide listings not re-checked for 6 h (removed by the store)
 
 
+def ui_version() -> str:
+    """Fingerprint of the dashboard files; open pages reload themselves when it changes."""
+    import hashlib
+    h = hashlib.sha1()
+    for name in ("index.html", "sw.js"):
+        h.update((STATIC / name).read_bytes())
+    return h.hexdigest()[:12]
+
+
+UI_VERSION = ui_version()
+
+
 def snapshot(engine) -> dict:
     watched = {s["name"] for s in engine.stores}
     now = time.time()
@@ -47,7 +59,7 @@ def snapshot(engine) -> dict:
                for s in engine.cfg.get("stores", []) if s.get("enabled", True) and s["name"] not in watched]
     events = [{k: e[k] for k in ("ts", "store", "title", "url", "old", "new", "price", "denomination")}
               for e in engine.db.events(since=now - 30 * 86400, limit=400) if e["store"] in watched]
-    return {"now": now, "started": getattr(engine, "started", now), "offers": offers, "health": health, "skipped": skipped, "events": events,
+    return {"now": now, "ui": UI_VERSION, "started": getattr(engine, "started", now), "offers": offers, "health": health, "skipped": skipped, "events": events,
             "alerts_on": bool(os.getenv("NTFY_TOPIC") or os.getenv("TELEGRAM_CHAT_ID"))}
 
 
