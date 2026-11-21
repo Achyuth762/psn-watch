@@ -26,7 +26,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from . import notify
+from . import notify, prefs
 from .adapters import ADAPTERS, HTTP_ONLY
 from .db import DB
 from .fetch import FetchError, Fetcher
@@ -132,7 +132,21 @@ class Engine:
         if alerts:
             log.warning("%s %s: %s", "REMINDER" if all(o.reminder for o in alerts) else "RESTOCK",
                         store["name"], ", ".join(o.title for o in alerts))
-            self._send(notify.restock, alerts)
+            self.dispatch(alerts)
+
+    def dispatch(self, alerts: list[Offer]):
+        """Wishlist matches get the loud alert (repeated while in stock); the rest follow prefs['others']."""
+        p = prefs.load(self.db)
+        wanted = [o for o in alerts if prefs.matches(p, o.denomination, o.markup_pct)]
+        other = [o for o in alerts if o not in wanted]
+        if wanted:
+            self._send(notify.restock, wanted)
+        if other and p["others"] == "loud":
+            self._send(notify.restock, other)
+        elif other and p["others"] == "quiet":
+            fresh = [o for o in other if not o.reminder]          # quiet ones are sent once, never repeated
+            if fresh:
+                self._send(notify.restock_quiet, fresh)
 
     def _on_failure(self, store, h: Health, msg: str, now: float):
         h.consecutive_failures += 1

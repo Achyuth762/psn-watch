@@ -32,9 +32,9 @@ def _url(u: str) -> str:
 
 log = logging.getLogger(__name__)
 
-RESTOCK, HEALTH, INFO = "restock", "health", "info"
-_PRIORITY = {RESTOCK: "5", HEALTH: "4", INFO: "2"}
-_TAGS = {RESTOCK: "rotating_light,video_game", HEALTH: "warning", INFO: "white_check_mark"}
+RESTOCK, QUIET, HEALTH, INFO = "restock", "quiet", "health", "info"
+_PRIORITY = {RESTOCK: "5", QUIET: "3", HEALTH: "4", INFO: "2"}
+_TAGS = {RESTOCK: "rotating_light,video_game", QUIET: "video_game", HEALTH: "warning", INFO: "white_check_mark"}
 
 
 def channels() -> list[str]:
@@ -97,7 +97,7 @@ def send(title: str, body: str, kind: str = INFO, click: str | None = None,
             e = _retry(lambda: c.post(
                 f"https://api.telegram.org/bot{os.environ['TELEGRAM_BOT_TOKEN']}/sendMessage",
                 json={"chat_id": os.environ["TELEGRAM_CHAT_ID"], "parse_mode": "HTML",
-                      "disable_web_page_preview": True, "disable_notification": kind == INFO,
+                      "disable_web_page_preview": True, "disable_notification": kind in (INFO, QUIET),
                       "text": text[:4000]}), "telegram")
             if e:
                 errors.append(e)
@@ -109,18 +109,23 @@ def send(title: str, body: str, kind: str = INFO, click: str | None = None,
     return errors
 
 
-def restock(offers: list[Offer]) -> list[str]:
+def restock(offers: list[Offer], quiet: bool = False) -> list[str]:
     reminder = all(o.reminder for o in offers)
     offers = sorted(offers, key=lambda o: (o.denomination or 0))
     stores = sorted({o.store for o in offers})
     vals = ", ".join(f"₹{o.denomination:,}" for o in offers if o.denomination) or f"{len(offers)} listing(s)"
-    title = f"{'Still in stock' if reminder else 'IN STOCK'}: PSN {vals} @ {', '.join(stores)}"
+    head = "In stock (not on your list)" if quiet else ("Still in stock" if reminder else "IN STOCK")
+    title = f"{head}: PSN {vals} @ {', '.join(stores)}"
     body = "\n".join(f"• {o.store}: {o.title} {price_str(o)}\n  {o.url}" for o in offers)
     html_body = "\n".join(f'• <b>{html.escape(o.store)}</b>: <a href="{html.escape(o.url)}">{html.escape(o.title)}</a> '
                           f"{html.escape(price_str(o))}" for o in offers)
     actions = [(f"Buy {('₹%s' % format(o.denomination, ',')) if o.denomination else ''} {o.store}".strip(), o.url)
                for o in offers[:3]]
-    return send(title, body, RESTOCK, click=offers[0].url, actions=actions, html_body=html_body)
+    return send(title, body, QUIET if quiet else RESTOCK, click=offers[0].url, actions=actions, html_body=html_body)
+
+
+def restock_quiet(offers: list[Offer]) -> list[str]:
+    return restock(offers, quiet=True)
 
 
 def ping_healthcheck(fail: bool = False):

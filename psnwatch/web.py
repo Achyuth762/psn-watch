@@ -1,4 +1,4 @@
-"""Read-only dashboard served by the watcher itself (so it always shows live data).
+"""Dashboard served by the watcher itself (so it always shows live data).
 
 Listens on 127.0.0.1 only; Caddy on the VM terminates HTTPS and achyuthus.dev/psn is a
 Vercel rewrite to it. Everything is under /psn so the same paths work through the proxy.
@@ -7,11 +7,20 @@ Vercel rewrite to it. Everything is under /psn so the same paths work through th
   GET /psn/api/status         live JSON: offers, store health, recent changes
   GET /psn/manifest.webmanifest, /psn/icon.svg, /psn/sw.js
   GET /psn/healthz            "ok" (for uptime checks)
+  GET /psn/api/item?key=...   one listing's history: stock spans, price changes
 
-Nothing here can change state or send alerts, so it is safe to leave public.
+Changing anything needs the admin key (PSN_ADMIN_KEY in /etc/psn-watch.env), sent in the
+X-PSN-Key header. A custom header can't be sent cross-site without a CORS preflight, which
+this server never approves, so other sites can't drive these endpoints from your browser.
+  POST /psn/api/prefs         save the wishlist          (key)
+  POST /psn/api/test          send a test phone alert    (key)
+  POST /psn/api/key-check     is this key right?         (key)
+  POST /psn/api/unlock        send an unlock link to the phone alert channel (no key; rate-limited,
+                              and the link only ever goes to your own ntfy topic)
 """
 from __future__ import annotations
 
+import hmac
 import json
 import logging
 import os
@@ -19,6 +28,9 @@ import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
+
+from . import notify, prefs
 
 log = logging.getLogger(__name__)
 STATIC = Path(__file__).resolve().parent / "static"
@@ -37,14 +49,23 @@ def ui_version() -> str:
 UI_VERSION = ui_version()
 
 
+def _markup(o: dict) -> float | None:
+    if o.get("price") and o.get("denomination"):
+        return round((o["price"] / o["denomination"] - 1) * 100, 1)
+    return None
+
+
 def snapshot(engine) -> dict:
     watched = {s["name"] for s in engine.stores}
     now = time.time()
-    offers = [
-        {k: o[k] for k in ("store", "title", "url", "status", "price", "denomination", "since", "checked")}
-        for o in engine.db.offers()
-        if o["store"] in watched and now - (o["checked"] or 0) < STALE_AFTER
-    ]
+    p = prefs.load(engine.db)
+    offers = []
+    for o in engine.db.offers():
+        if o["store"] not in watched or now - (o["checked"] or 0) >= STALE_AFTER:
+            continue
+        d = {k: o[k] for k in ("key", "store", "title", "url", "status", "price", "denomination", "since", "checked")}
+        d["match"] = prefs.matches(p, o["denomination"], _markup(o))
+        offers.append(d)
     health = []
     for st in engine.stores:
         h = engine.health[st["name"]]
@@ -60,10 +81,41 @@ def snapshot(engine) -> dict:
     events = [{k: e[k] for k in ("ts", "store", "title", "url", "old", "new", "price", "denomination")}
               for e in engine.db.events(since=now - 30 * 86400, limit=400) if e["store"] in watched]
     return {"now": now, "ui": UI_VERSION, "started": getattr(engine, "started", now), "offers": offers, "health": health, "skipped": skipped, "events": events,
-            "alerts_on": bool(os.getenv("NTFY_TOPIC") or os.getenv("TELEGRAM_CHAT_ID"))}
+            "alerts_on": bool(os.getenv("NTFY_TOPIC") or os.getenv("TELEGRAM_CHAT_ID")),
+            "prefs": p, "admin": bool(admin_key())}
 
 
-def make_handler(engine):
+def admin_key() -> str:
+    return os.getenv("PSN_ADMIN_KEY", "").strip()
+
+
+class Guard:
+    """Rate limits for the write endpoints (one process, so in-memory is enough)."""
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.fails: list[float] = []
+        self.last: dict[str, float] = {}
+
+    def locked_out(self, now: float) -> bool:
+        with self.lock:
+            self.fails = [t for t in self.fails if now - t < 600]
+            return len(self.fails) >= 10           # 10 wrong keys in 10 min -> refuse for a while
+
+    def fail(self, now: float):
+        with self.lock:
+            self.fails.append(now)
+
+    def allow(self, what: str, every: float, now: float) -> bool:
+        with self.lock:
+            if now - self.last.get(what, 0) < every:
+                return False
+            self.last[what] = now
+            return True
+
+
+def make_handler(engine, guard=None):
+    guard = guard or Guard()
+
     class Handler(BaseHTTPRequestHandler):
         server_version = "psn-watch"
 
@@ -103,6 +155,11 @@ def make_handler(engine):
                 elif path == "/psn/sw.js":
                     self._send(200, (STATIC / "sw.js").read_bytes(), "text/javascript; charset=utf-8", "no-cache",
                                {"Service-Worker-Allowed": "/psn"})
+                elif path == "/psn/api/item":
+                    key = (parse_qs(urlsplit(self.path).query).get("key") or [""])[0]
+                    if not key or len(key) > 2000:
+                        return self._json(400, {"error": "missing key"})
+                    self._json(200, engine.db.item_history(key), "public, max-age=0, s-maxage=30")
                 elif path == "/psn/healthz":
                     self._send(200, b"ok", "text/plain", "no-store")
                 else:
@@ -113,10 +170,74 @@ def make_handler(engine):
                 log.exception("web request failed: %s", self.path)
                 self._send(500, b"error", "text/plain", "no-store")
 
+        def _json(self, code: int, obj, cache: str = "no-store"):
+            self._send(code, json.dumps(obj, ensure_ascii=False).encode(), "application/json; charset=utf-8", cache)
+
+        def do_POST(self):
+            path = self.path.split("?", 1)[0].rstrip("/")
+            now = time.time()
+            try:
+                n = int(self.headers.get("Content-Length") or 0)
+                if n > 4096:
+                    return self._json(413, {"error": "too large"})
+                body = self.rfile.read(n) if n else b""
+                if path == "/psn/api/unlock":
+                    return self._unlock(now)
+                key = admin_key()
+                if not key:
+                    return self._json(503, {"error": "settings are not set up on the server (PSN_ADMIN_KEY)"})
+                if guard.locked_out(now):
+                    return self._json(429, {"error": "too many wrong keys; try again in 10 minutes"})
+                if not hmac.compare_digest(self.headers.get("X-PSN-Key", "").encode(), key.encode()):
+                    guard.fail(now)
+                    return self._json(403, {"error": "wrong key"})
+                if path == "/psn/api/key-check":
+                    return self._json(200, {"ok": True})
+                if path == "/psn/api/prefs":
+                    try:
+                        p = prefs.save(engine.db, json.loads(body or b"{}"))
+                    except ValueError as e:
+                        return self._json(400, {"error": str(e)})
+                    log.info("wishlist updated: %s", p)
+                    return self._json(200, {"ok": True, "prefs": p})
+                if path == "/psn/api/test":
+                    if not guard.allow("test", 20, now):
+                        return self._json(429, {"error": "wait 20 seconds between test alerts"})
+                    p = prefs.load(engine.db)
+                    vals = ", ".join(f"Rs {v:,}" for v in p["want"]) or "any face value"
+                    errs = notify.send("Test alert: psn-watch can reach your phone",
+                                       f"This is how a restock looks. Your list: {vals}"
+                                       + (f", up to {p['max_markup']:+g}% over face value." if p["max_markup"] is not None else "."),
+                                       notify.RESTOCK, click=public_url())
+                    return self._json(200 if not errs else 502, {"ok": not errs, "errors": errs})
+                return self._json(404, {"error": "not found"})
+            except BrokenPipeError:
+                pass
+            except Exception:  # noqa: BLE001
+                log.exception("web POST failed: %s", self.path)
+                self._json(500, {"error": "server error"})
+
+        def _unlock(self, now: float):
+            key = admin_key()
+            if not key or not os.getenv("NTFY_TOPIC"):
+                return self._json(503, {"error": "phone alerts or settings key aren't set up on the server"})
+            if not guard.allow("unlock", 120, now):
+                return self._json(429, {"error": "a link was sent in the last 2 minutes; check your phone"})
+            # The key rides in the #fragment: browsers never send it to any server or log.
+            link = f"{public_url()}#key={key}"
+            errs = notify.send("Unlock psn-watch settings", "Tap to open the dashboard with settings unlocked on "
+                               "this device. Ignore this if you didn't ask for it.", notify.QUIET, click=link,
+                               actions=[("Unlock settings", link)])
+            return self._json(200 if not errs else 502, {"ok": not errs})
+
         def _file(self, name, ctype, cache):
             self._send(200, (STATIC / name).read_bytes(), ctype, cache)
 
     return Handler
+
+
+def public_url() -> str:
+    return os.getenv("PSN_PUBLIC_URL", "https://achyuthus.dev/psn").rstrip("/")
 
 
 def start(engine, host: str = "127.0.0.1", port: int = 8080) -> ThreadingHTTPServer:

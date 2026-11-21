@@ -19,6 +19,9 @@ CREATE TABLE IF NOT EXISTS events(
   ts REAL, store TEXT, key TEXT, title TEXT, url TEXT, old TEXT, new TEXT, price REAL, denomination INTEGER);
 CREATE INDEX IF NOT EXISTS events_ts ON events(ts);
 CREATE TABLE IF NOT EXISTS kv(k TEXT PRIMARY KEY, v TEXT);
+CREATE TABLE IF NOT EXISTS prices(ts REAL, key TEXT, price REAL);
+CREATE INDEX IF NOT EXISTS prices_key ON prices(key, ts);
+CREATE INDEX IF NOT EXISTS events_key ON events(key, ts);
 """
 
 
@@ -28,6 +31,9 @@ class DB:
         self.conn.execute("PRAGMA journal_mode=WAL")
         self.conn.execute("PRAGMA synchronous=NORMAL")
         self.conn.executescript(SCHEMA)
+        # first run with price history: start each listing's history at its current price
+        self.conn.execute("INSERT INTO prices SELECT checked, key, price FROM offers "
+                          "WHERE price IS NOT NULL AND NOT EXISTS (SELECT 1 FROM prices)")
         self.lock = threading.Lock()
 
     # ------------------------------------------------------------------ offers
@@ -40,13 +46,15 @@ class DB:
             cur = self.conn.cursor()
             cur.execute("BEGIN")
             for o in offers:
-                row = cur.execute("SELECT status, since, last_alert FROM offers WHERE key=?", (o.key,)).fetchone()
+                row = cur.execute("SELECT status, since, last_alert, price FROM offers WHERE key=?", (o.key,)).fetchone()
                 if o.status == UNKNOWN:
                     # An unreadable page says nothing about stock: keep the last good reading.
                     if row:
                         cur.execute("UPDATE offers SET last_error=? WHERE key=?", (o.note[:300], o.key))
                     continue
-                prev_status, since, last_alert = row if row else (None, now, 0)
+                prev_status, since, last_alert, prev_price = row if row else (None, now, 0, None)
+                if o.price is not None and (row is None or prev_price != o.price):
+                    cur.execute("INSERT INTO prices VALUES(?,?,?)", (now, o.key, o.price))
                 if prev_status != o.status:
                     since = now
                     cur.execute("INSERT INTO events VALUES(?,?,?,?,?,?,?,?,?)",
@@ -81,6 +89,26 @@ class DB:
             cur = self.conn.execute("SELECT * FROM events WHERE ts>=? ORDER BY ts DESC LIMIT ?", (since, limit))
             cols = [c[0] for c in cur.description]
             return [dict(zip(cols, r)) for r in cur.fetchall()]
+
+    def item_history(self, key: str, limit: int = 500) -> dict:
+        """Status changes, price changes and in-stock spans for one listing (oldest first)."""
+        with self.lock:
+            ev = self.conn.execute("SELECT ts, old, new, price FROM events WHERE key=? ORDER BY ts DESC LIMIT ?",
+                                   (key, limit)).fetchall()
+            pr = self.conn.execute("SELECT ts, price FROM prices WHERE key=? ORDER BY ts DESC LIMIT ?",
+                                   (key, limit)).fetchall()
+        ev, pr = ev[::-1], pr[::-1]
+        spans, start = [], None
+        for ts, _old, new, _p in ev:
+            if new == IN and start is None:
+                start = ts
+            elif new != IN and start is not None:
+                spans.append([start, ts])
+                start = None
+        if start is not None:
+            spans.append([start, None])           # still in stock
+        return {"events": [{"ts": t, "old": o, "new": n, "price": p} for t, o, n, p in ev],
+                "prices": [[t, p] for t, p in pr], "spans": spans}
 
     # ------------------------------------------------------------------ small key/value store
     def get(self, k: str, default=None):
