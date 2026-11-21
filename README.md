@@ -27,6 +27,11 @@ New listings are found by re-searching each store every 5–15 min. A new ₹700
 - **Low resource use.** One shared headless Chromium, with images and fonts blocked, recycled every 60 pages. 2 GB swap. Memory capped so it can't take the VM down.
 - **Durable state.** Everything is stored in SQLite (WAL), including a stock-change history you can study for restock patterns.
 
+## Dashboard: achyuthus.dev/psn
+A live, phone-friendly page served by the watcher itself. It answers "can I buy one right now?" at the top, with Buy buttons, and below that shows every card by face value, the health of each store, and recent stock changes. It refreshes every 15 s, and you can add it to your home screen like an app.
+
+How it's wired: the watcher serves `/psn` on `127.0.0.1:8080`. Caddy on the VM provides HTTPS at `PSN_DOMAIN`, and the `achyuthus.dev` Vercel project has a rewrite from `/psn/*` to that host. The page is read-only: it can't send alerts or change anything.
+
 ## Install on a VM (Ubuntu 22.04/24.04)
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Achyuth762/psn-watch/main/deploy/install.sh | sudo bash -s -- YOUR_NTFY_TOPIC

@@ -116,6 +116,9 @@ def main():
         return
 
     logging.info("watching %d stores: %s", len(stores), ", ".join(s["name"] for s in stores))
+    if os.getenv("PSN_WEB_PORT"):
+        from psnwatch import web
+        web.start(engine, os.getenv("PSN_WEB_HOST", "127.0.0.1"), int(os.environ["PSN_WEB_PORT"]))
     engine.run_forever(report_fn=lambda e: report.write(e, data))
 
 
