@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#EEF2F8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0B1430" media="(prefers-color-scheme: dark)">
+<title>PSN India stock</title>
+<link rel="manifest" href="/psn/manifest.webmanifest">
+<link rel="icon" href="/psn/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/psn/icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #EEF2F8;
+    --surface: #FFFFFF;
+    --ink: #0F1B3D;
+    --ink-2: #4A5672;
+    --muted: #8A93A6;
+    --line: #D9E0EC;
+    --blue: #0047BB;
+    --blue-ink: #FFFFFF;
+    --green: #0E8A4F;
+    --green-wash: #E3F5EC;
+    --red: #B42318;
+    --radius-l: 18px;
+    --radius-s: 10px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #0B1430; --surface: #121E42; --ink: #E9EEF9; --ink-2: #A9B4CF; --muted: #6C7898;
+      --line: #23305A; --blue: #5B8DFF; --blue-ink: #0B1430; --green: #3DD68C; --green-wash: #0F3328;
+      --red: #FF8A80; color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+    font-optical-sizing: auto; font-size: 17px; line-height: 1.5;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  a { color: inherit; }
+  :focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; border-radius: 6px; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 18px 20px 64px; }
+
+  /* top bar */
+  .bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 40px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 16px; letter-spacing: -0.01em; }
+  .brand svg { width: 26px; height: 26px; }
+  .live { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-2); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+  .live.stale .dot { background: var(--red); }
+  .live.stale { color: var(--red); }
+
+  /* hero: the answer */
+  .answer { margin: 34px 0 10px; font-weight: 800; letter-spacing: -0.035em; line-height: 0.98;
+            font-size: clamp(44px, 13vw, 76px); font-variation-settings: "opsz" 96; text-wrap: balance; }
+  .answer.yes { color: var(--green); }
+  .lede { margin: 14px 0 0; color: var(--ink-2); max-width: 34em; }
+
+  .buy-list { list-style: none; padding: 0; margin: 26px 0 0; display: grid; gap: 12px; }
+  .buy { background: var(--green-wash); border-radius: var(--radius-l); padding: 16px 16px 16px 18px;
+         display: grid; grid-template-columns: 1fr auto; gap: 4px 14px; align-items: center; }
+  .buy .val { font-weight: 800; font-size: 30px; letter-spacing: -0.02em; line-height: 1.05; }
+  .buy .where { color: var(--ink-2); font-size: 15px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 20px;
+         border-radius: 999px; background: var(--blue); color: var(--blue-ink); font-weight: 600; font-size: 16px;
+         text-decoration: none; border: 0; cursor: pointer; font-family: inherit; white-space: nowrap; }
+  .buy .btn { grid-row: span 2; background: var(--green); color: #fff; }
+  @media (prefers-color-scheme: dark) { .buy .btn { color: #06251A; } }
+
+  /* sections */
+  section { margin-top: 44px; }
+  h2 { font-size: 22px; font-weight: 600; letter-spacing: -0.015em; margin: 0 0 4px; }
+  .sub { margin: 0 0 16px; color: var(--ink-2); font-size: 15px; }
+
+  .chips { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 10px; margin: 0 -2px; scrollbar-width: none; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip { flex: none; min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1.5px solid var(--line);
+          background: transparent; color: var(--ink); font: 500 15px/1 inherit; font-family: inherit; cursor: pointer; }
+  .chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+  .chip .n { color: var(--green); font-weight: 600; margin-left: 6px; }
+  .chip[aria-pressed="true"] .n { color: var(--paper); }
+
+  .denom { margin-top: 22px; }
+  .denom-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+                padding-bottom: 8px; border-bottom: 1.5px solid var(--ink); }
+  .denom-head h3 { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
+  .denom-head span { font-size: 14px; color: var(--ink-2); }
+  .rows { list-style: none; margin: 0; padding: 0; }
+  .row a { display: grid; grid-template-columns: 22px 1fr auto; gap: 12px; align-items: center;
+           padding: 13px 2px; border-bottom: 1px solid var(--line); text-decoration: none; }
+  .row .store { font-weight: 500; }
+  .row .meta { font-size: 14px; color: var(--ink-2); }
+  .row .state { font-size: 14px; text-align: right; white-space: nowrap; }
+  .row.out .store, .row.out .state { color: var(--muted); }
+  .row.in .state { color: var(--green); font-weight: 600; }
+  .mk { font-size: 13px; color: var(--red); margin-left: 6px; }
+  .glyph { width: 18px; height: 18px; display: block; }
+  .row.out .glyph { color: var(--muted); }
+  .row.in .glyph { color: var(--green); }
+
+  .stores { list-style: none; padding: 0; margin: 0; }
+  .stores li { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .stores .name { font-weight: 500; }
+  .stores .when { font-size: 14px; color: var(--ink-2); grid-column: 1 / -1; }
+  .stores .bad { color: var(--red); }
+  .stores .ok { font-size: 14px; color: var(--ink-2); }
+
+  details { margin-top: 18px; border-radius: var(--radius-s); background: var(--surface); padding: 14px 16px; }
+  summary { cursor: pointer; font-weight: 500; }
+  details p { color: var(--ink-2); font-size: 15px; margin: 10px 0 6px; }
+  details ul { margin: 0; padding-left: 18px; }
+  details li { padding: 3px 0; }
+
+  .events { list-style: none; padding: 0; margin: 0; }
+  .events li { display: grid; grid-template-columns: 88px 1fr; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
+  .events time { color: var(--ink-2); font-size: 14px; }
+  .events .came { color: var(--green); font-weight: 600; }
+  .events li.none { display: block; color: var(--ink-2); border-bottom: 0; }
+
+  .alerts { margin-top: 44px; padding: 18px; border-radius: var(--radius-l); background: var(--surface); }
+  .alerts h2 { font-size: 18px; }
+  .alerts p { margin: 6px 0 0; color: var(--ink-2); font-size: 15px; }
+  .alerts .row-btns { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+  .btn.ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--line); }
+
+  .empty { color: var(--ink-2); padding: 18px 0; }
+  .banner { margin-top: 18px; padding: 12px 14px; border-radius: var(--radius-s); background: #FDECEA; color: #7A1A12; font-size: 15px; }
+  @media (prefers-color-scheme: dark) { .banner { background: #3A1512; color: #FFC9C3; } }
+  [hidden] { display: none !important; }
+
+  .answer, .lede, .buy-list { animation: none; }
+  @media (prefers-reduced-motion: no-preference) {
+    .answer.fresh { animation: settle 520ms cubic-bezier(.2,.8,.2,1); }
+    @keyframes settle { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="bar">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="11" fill="none" stroke="currentColor" stroke-width="3.2"/><circle cx="16" cy="16" r="3.4" fill="currentColor"/></svg>
+      PSN India stock
+    </div>
+    <div class="live" id="live" role="status" aria-live="polite"><span class="dot"></span><span id="liveText">Connecting</span></div>
+  </header>
+
+  <main>
+    <h1 class="answer" id="answer">Checking stores…</h1>
+    <p class="lede" id="lede"></p>
+    <ul class="buy-list" id="buyList" hidden></ul>
+    <div class="banner" id="banner" hidden></div>
+
+    <section aria-labelledby="cardsTitle">
+      <h2 id="cardsTitle">Every card we track</h2>
+      <p class="sub" id="cardsSub">Grouped by face value. Tap a row to open the store.</p>
+      <div class="chips" id="chips" role="group" aria-label="Filter by face value"></div>
+      <div id="denoms"></div>
+    </section>
+
+    <section aria-labelledby="storesTitle">
+      <h2 id="storesTitle">Stores</h2>
+      <p class="sub">How often each store is checked, and whether the last check worked.</p>
+      <ul class="stores" id="stores"></ul>
+      <details id="skippedBox" hidden>
+        <summary id="skippedTitle"></summary>
+        <p>These stores refuse requests from the cloud server, so they can't be watched from it. Check them yourself, or use the store's own "Notify me" button.</p>
+        <ul id="skipped"></ul>
+      </details>
+    </section>
+
+    <section aria-labelledby="eventsTitle">
+      <h2 id="eventsTitle">Recent changes</h2>
+      <p class="sub">Restocks and sell-outs from the last 7 days.</p>
+      <ul class="events" id="events"></ul>
+    </section>
+
+    <aside class="alerts" aria-labelledby="alertsTitle">
+      <h2 id="alertsTitle">Phone alerts</h2>
+      <p id="alertsText">Checking…</p>
+      <div class="row-btns">
+        <button class="btn ghost" id="installBtn" hidden>Add to home screen</button>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<template id="glyphIn"><svg class="glyph" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="2.6"/></svg></template>
+<template id="glyphOut"><svg class="glyph" viewBox="0 0 20 20" aria-hidden="true"><path d="M4.5 4.5l11 11M15.5 4.5l-11 11" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></template>
+
+<script>
+(() => {
+  const API = "/psn/api/status";
+  const REFRESH_MS = 15000;
+  const $ = (id) => document.getElementById(id);
+  const inr = (n) => "₹" + Math.round(n).toLocaleString("en-IN");
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  let data = null, filter = "all", lastOk = 0, lastAnswer = "";
+
+  function ago(ts) {
+    if (!ts) return "never";
+    const s = Math.max(0, Math.round(Date.now() / 1000 - ts));
+    if (s < 60) return s + " s ago";
+    if (s < 3600) return Math.round(s / 60) + " min ago";
+    if (s < 86400) return Math.round(s / 3600) + " h ago";
+    return Math.round(s / 86400) + " d ago";
+  }
+  const every = (sec) => sec < 60 ? `every ${sec} s` : `every ${Math.round(sec / 60)} min`;
+  const clock = (ts) => new Date(ts * 1000).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+  const markup = (o) => (o.price && o.denomination) ? Math.round((o.price / o.denomination - 1) * 100) : 0;
+  const glyph = (inStock) => $(inStock ? "glyphIn" : "glyphOut").innerHTML;
+  const priceText = (o) => {
+    if (!o.price) return "Price on site";
+    const mk = markup(o);
+    return mk >= 1 ? `${inr(o.price)}, ${mk}% over face value` : mk <= -1 ? `${inr(o.price)}, ${-mk}% under face value` : "Face value";
+  };
+  const plainError = (e) => {
+    if (!e) return "No PSN listings found on the last check. Retrying.";
+    if (/\b403\b|401/.test(e)) return "The store is refusing automatic checks right now. Retrying with longer gaps.";
+    if (/\b429\b/.test(e)) return "The store asked for fewer checks. Slowing down and retrying.";
+    if (/\b5\d\d\b/.test(e)) return "The store's site is having trouble. Retrying.";
+    if (/timeout|timed out|Connect|Network/i.test(e)) return "The store didn't respond. Retrying.";
+    if (/no PSN/i.test(e)) return "Couldn't find PSN cards on the store's page. Its layout may have changed.";
+    return "Couldn't read the store's page. Retrying.";
+  };
+
+  async function load() {
+    try {
+      const r = await fetch(API, { cache: "no-store" });
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      data = await r.json();
+      lastOk = Date.now();
+      render();
+    } catch (e) {
+      renderLive(e);
+    }
+  }
+
+  function renderLive(err) {
+    const live = $("live"), age = data ? Date.now() / 1000 - data.now : Infinity;
+    const stale = !!err || age > 120;
+    live.classList.toggle("stale", stale);
+    $("liveText").textContent = !data ? "Can't reach the watcher" : stale ? "Offline, data " + ago(data.now) : "Live, updated " + ago(data.now);
+    $("banner").hidden = !stale || !data;
+    if (stale && data) $("banner").textContent = "Can't reach the watcher right now. What you see is from " + ago(data.now) + ". Phone alerts still work if the VM is running.";
+  }
+
+  function render() {
+    renderLive();
+    const offers = data.offers;
+    const inStock = offers.filter((o) => o.status === "in").sort((a, b) => (a.denomination || 0) - (b.denomination || 0));
+    const watched = data.health.length;
+
+    // ---- the answer
+    let answer, lede;
+    if (inStock.length === 1) {
+      const o = inStock[0];
+      answer = `${o.denomination ? inr(o.denomination) : "A card"} is in stock at ${o.store}.`;
+    } else if (inStock.length > 1) {
+      const stores = new Set(inStock.map((o) => o.store));
+      answer = `${inStock.length} cards are in stock right now.`;
+      lede = `At ${[...stores].join(", ")}. Buy fast: restocks usually sell out within hours.`;
+    } else {
+      answer = "Nothing to buy yet.";
+    }
+    if (!lede) {
+      if (inStock.length) lede = "Buy fast: restocks usually sell out within hours.";
+      else {
+        const lastIn = data.events.find((e) => e.new === "in");
+        lede = `Watching ${watched} stores and ${offers.length} listings. Your phone gets an alert the moment one comes in stock.` +
+               (lastIn ? ` Last restock: ${lastIn.denomination ? inr(lastIn.denomination) : "a card"} at ${lastIn.store}, ${ago(lastIn.ts)}.` : "");
+      }
+    }
+    const h1 = $("answer");
+    if (answer !== lastAnswer) { h1.classList.remove("fresh"); void h1.offsetWidth; h1.classList.add("fresh"); lastAnswer = answer; }
+    h1.textContent = answer;
+    h1.classList.toggle("yes", inStock.length > 0);
+    $("lede").textContent = lede;
+    document.title = inStock.length ? `(${inStock.length}) In stock: PSN India` : "PSN India stock";
+
+    const buy = $("buyList");
+    buy.hidden = !inStock.length;
+    buy.innerHTML = inStock.map((o) => {
+      return `<li class="buy">
+        <span class="val">${o.denomination ? inr(o.denomination) : esc(o.title)}</span>
+        <a class="btn" href="${esc(o.url)}" target="_blank" rel="noopener">Buy at ${esc(o.store)}</a>
+        <span class="where">${priceText(o)}. In stock for ${ago(o.since).replace(" ago", "")}.</span>
+      </li>`;
+    }).join("");
+
+    // ---- chips
+    const denoms = [...new Set(offers.map((o) => o.denomination || 0))].sort((a, b) => a - b);
+    if (filter !== "all" && !denoms.includes(+filter)) filter = "all";
+    const count = (d) => offers.filter((o) => (o.denomination || 0) === d && o.status === "in").length;
+    $("chips").innerHTML = [`<button class="chip" data-f="all" aria-pressed="${filter === "all"}">All</button>`]
+      .concat(denoms.map((d) => {
+        const n = count(d);
+        return `<button class="chip" data-f="${d}" aria-pressed="${filter == d}">${d ? inr(d) : "Other"}${n ? `<span class="n">${n} in stock</span>` : ""}</button>`;
+      })).join("");
+
+    // ---- cards grouped by face value
+    const shown = denoms.filter((d) => filter === "all" || filter == d);
+    $("denoms").innerHTML = shown.length ? shown.map((d) => {
+      const list = offers.filter((o) => (o.denomination || 0) === d)
+        .sort((a, b) => (a.status === "in" ? 0 : 1) - (b.status === "in" ? 0 : 1) || (a.price || 1e9) - (b.price || 1e9));
+      const n = list.filter((o) => o.status === "in").length;
+      return `<div class="denom">
+        <div class="denom-head"><h3>${d ? inr(d) : "Other"}</h3><span>${n ? `In stock at ${n} of ${list.length} stores` : list.length === 1 ? "Sold out" : `Sold out at all ${list.length} stores`}</span></div>
+        <ul class="rows">${list.map((o) => {
+          const mk = markup(o), isIn = o.status === "in";
+          const priceBit = !o.price ? "Price on site" : mk >= 1 ? `${inr(o.price)}<span class="mk">+${mk}%</span>` : inr(o.price);
+          return `<li class="row ${isIn ? "in" : "out"}"><a href="${esc(o.url)}" target="_blank" rel="noopener">
+            ${glyph(isIn)}
+            <span><span class="store">${esc(o.store)}</span><br><span class="meta">${priceBit}</span></span>
+            <span class="state">${isIn ? "In stock" : "Sold out"}</span></a></li>`;
+        }).join("")}</ul></div>`;
+    }).join("") : `<p class="empty">No listings found yet. The first checks finish within a few minutes of the watcher starting.</p>`;
+
+    // ---- stores
+    $("stores").innerHTML = data.health.map((h) => `<li>
+        <span class="name">${esc(h.name)}</span>
+        <span class="${h.ok ? "ok" : "bad"}">${h.ok ? (h.in_stock ? `${h.in_stock} in stock` : "Working") : "Can't read"}</span>
+        <span class="when">${h.ok ? `Checked ${ago(h.last_run)}, ${every(h.interval)}` : esc(plainError(h.error))}</span>
+      </li>`).join("");
+    const sk = data.skipped || [];
+    $("skippedBox").hidden = !sk.length;
+    $("skippedTitle").textContent = `${sk.length} store${sk.length === 1 ? "" : "s"} you need to check yourself`;
+    $("skipped").innerHTML = sk.map((s) => `<li><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.name)}</a></li>`).join("");
+
+    // ---- events (skip the "first seen as sold out" noise)
+    const ev = data.events.filter((e) => e.old !== null || e.new === "in").slice(0, 25);
+    $("events").innerHTML = ev.length ? ev.map((e) => `<li>
+        <time datetime="${new Date(e.ts * 1000).toISOString()}">${clock(e.ts)}</time>
+        <span>${e.new === "in" ? `<span class="came">In stock:</span>` : "Sold out:"} ${e.denomination ? inr(e.denomination) : esc(e.title)} at ${esc(e.store)}</span>
+      </li>`).join("") : `<li class="none">No restocks yet. They'll show up here, and on your phone, as they happen.</li>`;
+
+    $("alertsText").textContent = data.alerts_on
+      ? "On. The ntfy app on your phone rings the moment a card comes in stock, with a button that opens the store. You'll also get a short summary every morning at 9."
+      : "Off. Set NTFY_TOPIC in /etc/psn-watch.env on the server to get phone alerts.";
+  }
+
+  $("chips").addEventListener("click", (e) => {
+    const b = e.target.closest(".chip");
+    if (!b) return;
+    filter = b.dataset.f;
+    render();
+  });
+
+  // live "updated x s ago" without refetching
+  setInterval(() => data && renderLive(Date.now() - lastOk > REFRESH_MS * 3 ? new Error("stale") : null), 5000);
+  setInterval(load, REFRESH_MS);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) load(); });
+  load();
+
+  // install to home screen
+  let deferred = null;
+  window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferred = e; $("installBtn").hidden = false; });
+  $("installBtn").addEventListener("click", async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; $("installBtn").hidden = true; });
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("/psn/sw.js", { scope: "/psn" }).catch(() => {});
+})();
+</script>
+</body>
+</html>
