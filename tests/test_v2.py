@@ -254,3 +254,38 @@ def test_get_json_accepts_shopify_javascript_content_type():
     import pytest
     with pytest.raises(FetchError):
         f.get_json("https://s/x")
+
+
+# ------------------------------------------------------------------ dashboard
+def test_dashboard_serves_page_api_and_hides_unwatched_stores(tmp_path):
+    import json
+    import urllib.request
+    from psnwatch import web
+    st = {"name": "W", "type": "woocommerce", "url": "https://w"}
+    cfg_stores = [st, {"name": "Blocked", "type": "page", "products": ["https://b/1"], "blocks_cloud": True}]
+    e = make_engine(tmp_path, [st], Rec(lambda u, p: []))
+    e.cfg["stores"] = cfg_stores
+    e.db.record([Offer("W", "PSN ₹1000", "https://w/1", IN, 1000, 1000),
+                 Offer("Gone", "PSN ₹2000", "https://g/1", OUT, 2000, 2000)])   # store no longer watched
+    srv = web.start(e, "127.0.0.1", 0)
+    base = f"http://127.0.0.1:{srv.server_address[1]}"
+    try:
+        page = urllib.request.urlopen(base + "/psn").read().decode()
+        assert "PSN India stock" in page
+        r = urllib.request.urlopen(base + "/psn/api/status")
+        assert "s-maxage=5" in r.headers["Cache-Control"]
+        d = json.loads(r.read())
+        assert [o["store"] for o in d["offers"]] == ["W"]
+        assert d["skipped"] == [{"name": "Blocked", "url": "https://b/1"}]
+        assert d["health"][0]["name"] == "W"
+        sw = urllib.request.urlopen(base + "/psn/sw.js")
+        assert sw.headers["Service-Worker-Allowed"] == "/psn"
+        assert urllib.request.urlopen(base + "/psn/healthz").read() == b"ok"
+        import urllib.error
+        try:
+            urllib.request.urlopen(base + "/etc/passwd")
+            raise AssertionError("should 404")
+        except urllib.error.HTTPError as err:
+            assert err.code == 404
+    finally:
+        srv.shutdown()
