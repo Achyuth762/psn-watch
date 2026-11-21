@@ -38,6 +38,9 @@ elif [ -n "$TOPIC" ]; then
   grep -q '^NTFY_TOPIC=' /etc/psn-watch.env && sed -i "s|^NTFY_TOPIC=.*|NTFY_TOPIC=$TOPIC|" /etc/psn-watch.env \
     || echo "NTFY_TOPIC=$TOPIC" >> /etc/psn-watch.env
 fi
+# Key that unlocks the dashboard's settings. Generated once, never in the repo.
+grep -q '^PSN_ADMIN_KEY=.' /etc/psn-watch.env || echo "PSN_ADMIN_KEY=$(head -c 24 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 28)" >> /etc/psn-watch.env
+grep -q '^PSN_PUBLIC_URL=' /etc/psn-watch.env || echo "PSN_PUBLIC_URL=https://achyuthus.dev/psn" >> /etc/psn-watch.env
 chgrp psnwatch /etc/psn-watch.env && chmod 640 /etc/psn-watch.env
 grep -q '^NTFY_TOPIC=.' /etc/psn-watch.env || echo "    WARNING: no NTFY_TOPIC set — alerts will only go to the log"
 
