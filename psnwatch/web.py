@@ -15,6 +15,7 @@ this server never approves, so other sites can't drive these endpoints from your
   POST /psn/api/prefs         save the wishlist          (key)
   POST /psn/api/test          send a test phone alert    (key)
   POST /psn/api/key-check     is this key right?         (key)
+  POST /psn/api/ingest        laptop helper's readings for cloud-blocked stores (HMAC-signed, see relay.py)
   POST /psn/api/unlock        send an unlock link to the phone alert channel (no key; rate-limited,
                               and the link only ever goes to your own ntfy topic)
 """
@@ -30,11 +31,13 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
-from . import notify, prefs
+from . import notify, prefs, relay
+from .models import IN, OUT, UNKNOWN, Offer
 
 log = logging.getLogger(__name__)
 STATIC = Path(__file__).resolve().parent / "static"
 STALE_AFTER = 6 * 3600          # hide listings not re-checked for 6 h (removed by the store)
+PAUSED_AFTER = 180              # laptop reports every ~60 s; quiet for 3 min = asleep or off
 
 
 def ui_version() -> str:
@@ -55,9 +58,65 @@ def _markup(o: dict) -> float | None:
     return None
 
 
+def remote_stores(engine, now: float) -> dict:
+    """Stores the laptop helper reported on within the last 6 h, with 'seen' and 'paused'."""
+    if not hasattr(engine, "remote"):
+        try:
+            engine.remote = json.loads(engine.db.get("remote") or "{}")
+        except ValueError:
+            engine.remote = {}
+    out = {}
+    for name, r in engine.remote.items():
+        if now - r.get("seen", 0) < STALE_AFTER:
+            out[name] = {**r, "paused": now - r["seen"] > PAUSED_AFTER}
+    return out
+
+
+def ingest(engine, data: dict, now: float) -> int:
+    """Validate and store a laptop report. Only cloud-blocked stores the VM doesn't watch itself."""
+    own = {s["name"] for s in engine.stores}
+    allowed = {s["name"]: s for s in engine.cfg.get("stores", []) if s.get("blocks_cloud") and s["name"] not in own}
+    if not isinstance(data, dict) or not isinstance(data.get("stores"), list) or not isinstance(data.get("offers"), list):
+        raise ValueError("expected {stores: [...], offers: [...]}")
+    if len(data["offers"]) > 500 or len(data["stores"]) > 50:
+        raise ValueError("too many entries")
+
+    def num(v):
+        return float(v) if isinstance(v, (int, float)) and not isinstance(v, bool) else None
+    reported = {}
+    for h in data["stores"]:
+        if not isinstance(h, dict) or h.get("name") not in allowed:
+            continue
+        hist = [[num(x[0]) or 0, 1 if x[1] else 0] for x in (h.get("history") or [])[-48:]
+                if isinstance(x, list) and len(x) == 2]
+        reported[h["name"]] = {"ok": bool(h.get("ok")), "interval": int(num(h.get("interval")) or 60),
+                               "last_ok": num(h.get("last_ok")) or 0, "last_run": num(h.get("last_run")) or 0,
+                               "error": str(h.get("error") or "")[:160], "in_stock": int(num(h.get("in_stock")) or 0),
+                               "passes": int(num(h.get("passes")) or 0), "kind": str(h.get("kind") or "page")[:20],
+                               "history": hist, "seen": now}
+    offers = []
+    for o in data["offers"]:
+        if not isinstance(o, dict) or o.get("store") not in reported:
+            continue
+        url, status = str(o.get("url") or ""), o.get("status")
+        if not url.startswith("https://") or len(url) > 600 or status not in (IN, OUT, UNKNOWN):
+            continue
+        d = num(o.get("denomination"))
+        offers.append(Offer(o["store"], str(o.get("title") or "")[:200], url, status, num(o.get("price")),
+                            int(d) if d else None, str(o.get("note") or "")[:120]))
+    if offers:
+        engine.db.record(offers, now=now)        # history + events; the VM never alerts on these
+    remote_stores(engine, now)                   # loads engine.remote if needed
+    engine.remote.update(reported)
+    engine.db.set("remote", json.dumps(engine.remote))
+    return len(offers)
+
+
 def snapshot(engine) -> dict:
-    watched = {s["name"] for s in engine.stores}
+    own = {s["name"] for s in engine.stores}
     now = time.time()
+    remote = remote_stores(engine, now)
+    watched = own | {n for n, r in remote.items() if not r["paused"]}   # paused laptop stores: no stale stock
     p = prefs.load(engine.db)
     offers = []
     for o in engine.db.offers():
@@ -76,10 +135,20 @@ def snapshot(engine) -> dict:
                        "uptime": round(100 * sum(1 for x in hist if x[1]) / len(hist)) if hist else None,
                        "history": [[x[0], 1 if x[1] else 0] for x in hist],
                        "url": st.get("url") or (st.get("listings") or st.get("products") or [""])[0]})
+    cfg_by_name = {s["name"]: s for s in engine.cfg.get("stores", [])}
+    for name, r in sorted(remote.items()):
+        st, hist = cfg_by_name.get(name, {}), r.get("history") or []
+        health.append({"name": name, "ok": r["ok"] and not r["paused"], "interval": r["interval"],
+                       "last_ok": r["last_ok"], "last_run": r["last_run"], "error": r["error"],
+                       "in_stock": 0 if r["paused"] else r["in_stock"], "passes": r["passes"], "kind": r["kind"],
+                       "uptime": round(100 * sum(x[1] for x in hist) / len(hist)) if hist else None,
+                       "history": hist, "via": "laptop", "seen": r["seen"], "paused": r["paused"],
+                       "url": st.get("url") or (st.get("listings") or st.get("products") or [""])[0]})
     skipped = [{"name": s["name"], "url": s.get("url") or (s.get("listings") or s.get("products") or [""])[0]}
-               for s in engine.cfg.get("stores", []) if s.get("enabled", True) and s["name"] not in watched]
+               for s in engine.cfg.get("stores", [])
+               if s.get("enabled", True) and s["name"] not in own and s["name"] not in remote]
     events = [{k: e[k] for k in ("ts", "store", "title", "url", "old", "new", "price", "denomination")}
-              for e in engine.db.events(since=now - 30 * 86400, limit=400) if e["store"] in watched]
+              for e in engine.db.events(since=now - 30 * 86400, limit=400) if e["store"] in own | set(remote)]
     return {"now": now, "ui": UI_VERSION, "started": getattr(engine, "started", now), "offers": offers, "health": health, "skipped": skipped, "events": events,
             "alerts_on": bool(os.getenv("NTFY_TOPIC") or os.getenv("TELEGRAM_CHAT_ID")),
             "prefs": p, "admin": bool(admin_key())}
@@ -178,9 +247,21 @@ def make_handler(engine, guard=None):
             now = time.time()
             try:
                 n = int(self.headers.get("Content-Length") or 0)
-                if n > 4096:
+                if n > (512 * 1024 if path == "/psn/api/ingest" else 4096):
                     return self._json(413, {"error": "too large"})
                 body = self.rfile.read(n) if n else b""
+                if path == "/psn/api/ingest":
+                    topic = os.getenv("NTFY_TOPIC", "")
+                    if not topic:
+                        return self._json(503, {"error": "relay not set up on the server"})
+                    if not relay.verify(relay.key_for(topic), self.headers.get("X-PSN-TS", ""),
+                                        self.headers.get("X-PSN-Sig", ""), body, now):
+                        return self._json(403, {"error": "bad signature"})
+                    try:
+                        count = ingest(engine, json.loads(body), now)
+                    except ValueError as e:
+                        return self._json(400, {"error": str(e)})
+                    return self._json(200, {"ok": True, "offers": count})
                 if path == "/psn/api/unlock":
                     return self._unlock(now)
                 key = admin_key()
