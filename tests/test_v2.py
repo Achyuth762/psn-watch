@@ -486,3 +486,73 @@ def test_waking_from_sleep_is_not_a_stall(tmp_path):
     assert e._stalled(now)
     e._resumed(now, 6 * 3600)
     assert e._stalled(now) is None
+
+
+# ------------------------------------------------------------------ laptop -> dashboard relay
+def test_relay_signing_and_replay_window():
+    from psnwatch import relay
+    k = relay.key_for("topic-abc")
+    sig = relay.sign(k, "1000", b"{}")
+    assert relay.verify(k, "1000", sig, b"{}", now=1100)
+    assert not relay.verify(k, "1000", sig, b"{} ", now=1100)                 # body changed
+    assert not relay.verify(k, "1000", sig, b"{}", now=1000 + relay.MAX_SKEW + 1)  # too old
+    assert not relay.verify(relay.key_for("other"), "1000", sig, b"{}", now=1100)
+
+
+def test_dashboard_shows_laptop_stores_and_pauses_them(tmp_path, monkeypatch):
+    import json
+    import urllib.error
+    import urllib.request
+    from psnwatch import relay, web
+    monkeypatch.setenv("NTFY_TOPIC", "topic-abc")
+    vm_store = {"name": "W", "type": "woocommerce", "url": "https://w"}
+    blocked = {"name": "Stan Shop", "type": "page", "products": ["https://stan/p"], "blocks_cloud": True}
+    e = make_engine(tmp_path, [vm_store], Rec(lambda u, p: []))
+    e.cfg = {"stores": [vm_store, blocked, {"name": "Amazon", "type": "page", "products": [], "blocks_cloud": True}]}
+    srv = web.start(e, "127.0.0.1", 0)
+    base = f"http://127.0.0.1:{srv.server_address[1]}"
+    report = {"stores": [{"name": "Stan Shop", "ok": True, "interval": 45, "last_ok": time.time(), "last_run": time.time(),
+                          "error": "", "in_stock": 1, "passes": 3, "kind": "page", "history": [[time.time(), 1]]},
+                         {"name": "W", "ok": True}],                                     # VM's own store: ignored
+              "offers": [{"store": "Stan Shop", "title": "PSN - Rs 2,000", "url": "https://stan/p#2000", "status": "in",
+                          "price": 2000, "denomination": 2000},
+                         {"store": "W", "title": "fake", "url": "https://w/x", "status": "in", "price": 1, "denomination": 1},
+                         {"store": "Stan Shop", "title": "bad url", "url": "javascript:alert(1)", "status": "in"}]}
+
+    def post(body, topic="topic-abc", ts=None):
+        raw = json.dumps(body).encode()
+        ts = ts or str(int(time.time()))
+        req = urllib.request.Request(base + "/psn/api/ingest", data=raw, method="POST", headers={
+            "Content-Type": "application/json", "X-PSN-TS": ts, "X-PSN-Sig": relay.sign(relay.key_for(topic), ts, raw)})
+        try:
+            r = urllib.request.urlopen(req)
+            return r.status, json.loads(r.read())
+        except urllib.error.HTTPError as err:
+            return err.code, json.loads(err.read())
+    try:
+        assert post(report, topic="wrong")[0] == 403
+        assert post(report, ts=str(int(time.time()) - 3600))[0] == 403
+        assert post({"nope": 1})[0] == 400
+        assert post(report) == (200, {"ok": True, "offers": 1})                      # only the valid Stan offer
+        s = json.loads(urllib.request.urlopen(base + "/psn/api/status").read())
+        stan = [h for h in s["health"] if h["name"] == "Stan Shop"][0]
+        assert stan["via"] == "laptop" and stan["ok"] and not stan["paused"]
+        assert [o["denomination"] for o in s["offers"] if o["store"] == "Stan Shop"] == [2000]
+        assert not [o for o in s["offers"] if o["url"] == "https://w/x"]
+        assert [x["name"] for x in s["skipped"]] == ["Amazon"]                       # Stan no longer "check yourself"
+        e.remote["Stan Shop"]["seen"] = time.time() - 600                            # laptop went to sleep
+        s = json.loads(urllib.request.urlopen(base + "/psn/api/status").read())
+        stan = [h for h in s["health"] if h["name"] == "Stan Shop"][0]
+        assert stan["paused"] and not stan["ok"]
+        assert not [o for o in s["offers"] if o["store"] == "Stan Shop"]               # no stale stock shown
+    finally:
+        srv.shutdown()
+
+
+def test_laptop_payload_contains_its_stores(tmp_path):
+    from psnwatch import relay
+    st = {"name": "Stan Shop", "type": "page", "products": [], "blocks_cloud": True}
+    e = make_engine(tmp_path, [st], Rec(lambda u, p: []))
+    e.db.record([Offer("Stan Shop", "PSN - Rs 1,000", "https://stan/p#1000", OUT, 1000, 1000)], now=time.time())
+    p = relay.payload(e)
+    assert p["stores"][0]["name"] == "Stan Shop" and p["offers"][0]["denomination"] == 1000
