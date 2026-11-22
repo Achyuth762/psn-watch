@@ -76,3 +76,17 @@ this repo). On the Alerts tab, **Send unlock link** pushes a link to your ntfy t
 settings on that device (the key travels in the URL `#fragment`, which browsers never send to a server).
 
 Tap **History** on any card to see how often it was in stock, how long stock lasted, and price changes.
+
+## Laptop helper (stores that block cloud servers)
+
+Amazon, Croma, Play-Asia, MD Computers, Sheenu, KRG Kart, E2Z and Stan Shop refuse traffic from cloud
+servers, so the VM skips them. A Windows laptop on a home connection can watch them instead. In
+PowerShell (no admin needed):
+
+    & ([scriptblock]::Create((irm https://raw.githubusercontent.com/Achyuth762/psn-watch/main/deploy/laptop.ps1))) -Topic <ntfy-topic>
+
+It installs Python if needed, puts everything in `%LOCALAPPDATA%\psn-watch`, checks the stores once so
+you can see they answer, and starts hidden at every sign-in (re-checked every 5 min). It runs
+`watch.py --laptop`: only those stores, restock alerts only (no heartbeats or store-down messages,
+since the laptop sleeps), following the wishlist saved on the dashboard. Run the same line again
+without `-Topic` to update; add `-Uninstall` to remove. Its results don't appear on the dashboard.

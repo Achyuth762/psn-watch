@@ -4,3 +4,5 @@ beautifulsoup4>=4.12
 # Needed for Games The Shop, Croma, Rooter and for sites that block plain HTTP.
 # After installing, run once:  playwright install chromium
 playwright>=1.45
+# Windows has no system time-zone database (needed for India time)
+tzdata; sys_platform == "win32"

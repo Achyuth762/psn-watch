@@ -6,6 +6,7 @@
   python watch.py --status        print what the running watcher last saw (from the database)
   python watch.py --test-notify   send a test restock alert to every configured channel
   python watch.py --only "Rooter,Games Kart" --once -v     debug specific stores
+  python watch.py --laptop --log psn.log                   laptop helper: only stores that block cloud servers
 """
 from __future__ import annotations
 
@@ -33,15 +34,17 @@ def load_env(*paths: Path):
     for path in paths:
         if not path.exists():
             continue
-        for line in path.read_text(encoding="utf-8").splitlines():
+        for line in path.read_text(encoding="utf-8-sig").splitlines():    # -sig: Windows PowerShell adds a BOM
             line = line.strip()
             if line and not line.startswith("#") and "=" in line:
                 k, v = line.split("=", 1)
                 os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
 
 
-def pick_stores(cfg: dict, only: str | None, browser: bool) -> list[dict]:
+def pick_stores(cfg: dict, only: str | None, browser: bool, laptop: bool = False) -> list[dict]:
     stores = [s for s in cfg["stores"] if s.get("enabled", True)]
+    if laptop:                                   # the VM covers everything else
+        stores = [s for s in stores if s.get("blocks_cloud")]
     if only:
         wanted = {w.strip().lower() for w in only.split(",")}
         stores = [s for s in cfg["stores"] if s["name"].lower() in wanted]
@@ -67,13 +70,23 @@ def main():
     ap.add_argument("--dry-run", action="store_true", help="never send alerts")
     ap.add_argument("--test-notify", action="store_true")
     ap.add_argument("-v", "--verbose", action="store_true")
+    ap.add_argument("--laptop", action="store_true",
+                    help="helper mode: watch only stores that block cloud servers, send restock alerts only")
+    ap.add_argument("--log", help="also write the log to this file (rotated at 1 MB, 3 kept)")
     args = ap.parse_args()
+    if sys.stderr is None or sys.stdout is None:  # pythonw.exe (no console): give libraries real streams
+        sys.stdout = sys.stderr = open(os.devnull, "w", encoding="utf-8")
 
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO,
                         format="%(asctime)s %(levelname)-7s %(threadName)-18s %(message)s", datefmt="%H:%M:%S")
+    if args.log:
+        from logging.handlers import RotatingFileHandler
+        fh = RotatingFileHandler(args.log, maxBytes=1_000_000, backupCount=3, encoding="utf-8")
+        fh.setFormatter(logging.Formatter("%(asctime)s %(levelname)-7s %(threadName)-18s %(message)s"))
+        logging.getLogger().addHandler(fh)
     for noisy in ("httpx", "httpcore"):
         logging.getLogger(noisy).setLevel(logging.WARNING)
-    load_env(ROOT / ".env", Path("/etc/psn-watch.env"))
+    load_env(ROOT / ".env", Path(args.data) / ".env", Path("/etc/psn-watch.env"))
     cfg = yaml.safe_load(Path(args.config).read_text(encoding="utf-8"))
     data = Path(args.data)
     data.mkdir(parents=True, exist_ok=True)
@@ -93,13 +106,13 @@ def main():
         print(report.table(db.offers(), only_in=args.in_stock))
         return
 
-    stores = pick_stores(cfg, args.only, browser=not args.no_browser)
+    stores = pick_stores(cfg, args.only, browser=not args.no_browser, laptop=args.laptop)
     if not stores:
         sys.exit("No stores selected.")
     if not notify.channels() and not args.dry_run:
         logging.warning("No alert channel configured — alerts will only be printed.")
     fetcher = Fetcher(use_browser=not args.no_browser)
-    engine = Engine(cfg, stores, fetcher, db, send_alerts=not args.dry_run)
+    engine = Engine(cfg, stores, fetcher, db, send_alerts=not args.dry_run, restock_only=args.laptop)
 
     if args.once:
         http = [s for s in stores if s["type"] in HTTP_ONLY]
