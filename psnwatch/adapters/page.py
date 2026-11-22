@@ -34,14 +34,14 @@ def _jsonld_objects(soup: BeautifulSoup):
             data = json.loads(s.string or s.get_text() or "")
         except (json.JSONDecodeError, TypeError):
             continue
-        stack = [data]
+        stack = [data]                           # depth-first, in document order
         while stack:
             x = stack.pop()
             if isinstance(x, list):
-                stack.extend(x)
+                stack.extend(reversed(x))
             elif isinstance(x, dict):
                 yield x
-                for k in ("@graph", "offers", "hasVariant", "itemListElement", "item", "mainEntity"):
+                for k in reversed(("@graph", "offers", "hasVariant", "itemListElement", "item", "mainEntity")):
                     if k in x:
                         stack.append(x[k])
 
@@ -123,6 +123,56 @@ def parse_product(html: str, url: str, cfg: dict, fallback_title: str = "") -> O
     return Offer(cfg["name"], title, url, status, price, denomination(title), note)
 
 
+def parse_variants(html: str, url: str, cfg: dict) -> list[Offer]:
+    """One page, several face values (e.g. Stan Shop): one Offer per JSON-LD Offer.
+
+    Each variant gets its own key (url#<face value>) so restocks are tracked per face value.
+    Face values come from `variant_face_regex` matched in the page's visible text, in page order,
+    when it finds exactly one per variant; otherwise from the offer's name, then its price.
+    Returns [] if the page has fewer than two priced offers (caller falls back to parse_product).
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    name, variants, seen = "", [], set()
+    for o in _jsonld_objects(soup):
+        t = str(o.get("@type", "")).lower()
+        if "product" in t and not name:
+            name = clean(str(o.get("name", "")))
+        if t != "offer" or not o.get("availability"):
+            continue
+        ident = (str(o.get("sku", "")), str(o.get("price", "")), str(o.get("name", "")))
+        if ident in seen:                        # many shops print the same JSON-LD block twice
+            continue
+        seen.add(ident)
+        a = str(o["availability"]).lower().rsplit("/", 1)[-1]
+        status = IN if a in _IN_SCHEMA else OUT if a in _OUT_SCHEMA else UNKNOWN
+        try:
+            price = float(str(o.get("price")).replace(",", ""))
+        except (TypeError, ValueError):
+            price = None
+        variants.append((status, price, clean(str(o.get("name", "")))))
+    if len(variants) < 2:
+        return []
+    faces: list[int] = []
+    if cfg.get("variant_face_regex"):
+        rx = re.compile(cfg["variant_face_regex"], re.I)
+        for m in rx.finditer(_visible_text(soup, cfg.get("text_scope"))):
+            try:
+                v = int(float(m.group(1).replace(",", "")))
+            except ValueError:
+                continue
+            if v not in faces:
+                faces.append(v)
+    if len(faces) != len(variants):
+        faces = []
+    title = name or page_title(soup)
+    out = []
+    for i, (status, price, vname) in enumerate(variants):
+        face = faces[i] if faces else (denomination(vname) or (int(price) if price else None))
+        label = f"{title} - Rs {face:,}" if face else (vname or title)
+        out.append(Offer(cfg["name"], label, f"{url}#{face or i + 1}", status, price, face, "json-ld variant"))
+    return out
+
+
 def find_links(html: str, base_url: str, link_regex: str | None, require_psn: bool = True) -> list[tuple[str, str]]:
     soup = BeautifulSoup(html, "html.parser")
     rx = re.compile(link_regex, re.I) if link_regex else None
@@ -182,6 +232,11 @@ def check(cfg: dict, f, cache: dict | None = None) -> list[Offer]:
         seen.add(url)
         try:
             html = f.get_html(url, render=render)
+            if cfg.get("split_variants"):
+                vs = parse_variants(html, url, cfg)
+                if vs:
+                    offers.extend(vs)
+                    continue
             o = parse_product(html, url, cfg, fallback_title=label if is_psn_india_card(label) else "")
         except Exception as e:  # one bad product page shouldn't hide the rest
             o = Offer(cfg["name"], label or url, url, UNKNOWN, note=f"error: {e}")
