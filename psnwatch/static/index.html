@@ -193,6 +193,8 @@ table.st { width: 100%; border-collapse: collapse; font-size: 14px; }
 .st .name { font-weight: 600; }
 .st .num { font-family: var(--mono); font-size: 13px; color: var(--ink-2); white-space: nowrap; }
 .st .ok { color: var(--in); font-weight: 600; }
+.st .pz { color: var(--ink-2); font-weight: 600; }
+.via { font: 500 11px/1 var(--mono); color: var(--ink-2); border: 1px solid var(--line-2); border-radius: 4px; padding: 2px 5px; margin-left: 4px; vertical-align: 1px; }
 .st .bad { color: var(--bad); font-weight: 600; }
 .st .err { color: var(--ink-2); font-size: 13px; }
 .bars { display: flex; gap: 2px; height: 22px; align-items: stretch; min-width: 150px; }
@@ -637,8 +639,8 @@ html.big { zoom: 1.15; }
   function render() {
     tick();
     const H = data.health, O = data.offers;
-    const okCount = H.filter((h) => h.ok).length;
-    $("sOk").textContent = `${okCount}/${H.length}`;
+    const okCount = H.filter((h) => h.ok).length, live = H.filter((h) => !h.paused).length;
+    $("sOk").textContent = `${okCount}/${live}`;
     const lastIn = data.events.find((e) => e.new === "in");
     $("sLast").textContent = lastIn ? ago(lastIn.ts) : "none yet";
     document.title = baseTitle();
@@ -713,9 +715,13 @@ html.big { zoom: 1.15; }
     const ds = denoms(O).filter((d) => !ui.values.length || ui.values.includes(d));
     const listed = new Set(O.map((o) => o.store));
     const stores = H.map((h) => h.name).filter((n) => listed.has(n));
-    const unlisted = H.map((h) => h.name).filter((n) => !listed.has(n));
-    $("mxNote").hidden = !unlisted.length;
-    $("mxNote").textContent = unlisted.length ? `${unlisted.join(", ")} ${unlisted.length === 1 ? "has" : "have"} no PSN listings right now. Still checked; a new listing shows up here automatically.` : "";
+    const unlisted = H.filter((h) => !h.paused).map((h) => h.name).filter((n) => !listed.has(n));
+    const paused = H.filter((h) => h.paused).map((h) => h.name);
+    const notes = [];
+    if (unlisted.length) notes.push(`${unlisted.join(", ")} ${unlisted.length === 1 ? "has" : "have"} no PSN listings right now. Still checked; a new listing shows up here automatically.`);
+    if (paused.length) notes.push(`Paused while your laptop is asleep or off: ${paused.join(", ")}.`);
+    $("mxNote").hidden = !notes.length;
+    $("mxNote").textContent = notes.join(" ");
     const by = new Map(O.map((o) => [o.store + "|" + (o.denomination || 0), o]));
     const best = bestUrls(O);
     const health = new Map(H.map((h) => [h.name, h]));
@@ -734,7 +740,7 @@ html.big { zoom: 1.15; }
     html += `</tr></thead><tbody>`;
     for (const s of stores) {
       const h = health.get(s);
-      html += `<tr><th scope="row"><span class="dot ${h.ok ? "" : "bad"}" aria-hidden="true"></span>${esc(s)}<span class="sr">${h.ok ? ", working" : ", can't read"}</span></th>`;
+      html += `<tr><th scope="row"><span class="dot ${h.ok ? "" : "bad"}" aria-hidden="true"></span>${esc(s)}${h.via === "laptop" ? ' <span class="via">laptop</span>' : ""}<span class="sr">${h.ok ? ", working" : ", can't read"}${h.via === "laptop" ? ", checked by your laptop" : ""}</span></th>`;
       for (const d of ds) {
         const o = by.get(s + "|" + d);
         if (!o) { html += `<td><span class="cell none"><span aria-hidden="true">–</span><span class="sr">${esc(s)} doesn't sell ${d ? inr(d) : "this"}</span></span></td>`; continue; }
@@ -796,8 +802,9 @@ html.big { zoom: 1.15; }
       const bars = "<i class='e'></i>".repeat(pad) + hist.map((x) => `<i class="${x[1] ? "" : "f"}"></i>`).join("");
       const up = h.uptime == null ? "no checks yet" : `${h.uptime}% of the last ${hist.length} checks worked`;
       return `<tr>
-        <th scope="row" class="name">${esc(h.name)}</th>
-        <td>${h.ok ? `<span class="ok">● Working</span>${h.in_stock ? ` <span class="num">${h.in_stock} in stock</span>` : ""}` : `<span class="bad">✕ Can't read</span><div class="err">${esc(plainError(h.error))}</div>`}</td>
+        <th scope="row" class="name">${esc(h.name)}${h.via === "laptop" ? ' <span class="via">laptop</span>' : ""}</th>
+        <td>${h.paused ? `<span class="pz">⏸ Paused</span><div class="err">Your laptop is asleep or off. Last report ${ago(h.seen)}.</div>`
+          : h.ok ? `<span class="ok">● Working</span>${h.in_stock ? ` <span class="num">${h.in_stock} in stock</span>` : ""}` : `<span class="bad">✕ Can't read</span><div class="err">${esc(plainError(h.error))}</div>`}</td>
         <td class="num c-every">${every(h.interval)}</td>
         <td class="num">${ago(h.last_run)}</td>
         <td class="c-bars"><div class="bars" role="img" aria-label="${esc(up)}" title="${esc(up)}">${bars}</div></td>
