@@ -60,6 +60,7 @@ stores:
   # so split_variants turns it into one listing per face value. Server-rendered: plain HTTP is enough.
   - name: Stan Shop
     type: page
+    blocks_cloud: true        # answers 403 to Azure's IP range (checked 22 Nov); works from home connections
     render: false
     interval: 45
     split_variants: true
