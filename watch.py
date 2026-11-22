@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+import time
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -123,6 +124,7 @@ def main():
         for s, (offers, err) in results:
             engine.process(s, offers, err)
         report.write(engine, data)
+        relay_to_dashboard(engine)
         print(report.table(db.offers(), [h.to_dict() for h in engine.health.values()], args.in_stock))
         import time
         time.sleep(1.5)        # let alert threads finish
@@ -132,7 +134,20 @@ def main():
     if os.getenv("PSN_WEB_PORT"):
         from psnwatch import web
         web.start(engine, os.getenv("PSN_WEB_HOST", "127.0.0.1"), int(os.environ["PSN_WEB_PORT"]))
-    engine.run_forever(report_fn=lambda e: report.write(e, data))
+    def report_fn(e):
+        report.write(e, data)
+        if time.time() - getattr(e, "_relayed", 0) >= 60:
+            e._relayed = time.time()
+            relay_to_dashboard(e)
+    engine.run_forever(report_fn=report_fn)
+
+
+def relay_to_dashboard(engine):
+    """Laptop helper: send readings to the VM so the dashboard shows these stores too (PSN_PUSH_URL)."""
+    url, topic = os.getenv("PSN_PUSH_URL"), os.getenv("NTFY_TOPIC")
+    if url and topic:
+        from psnwatch import relay
+        relay.push(engine, url, topic)
 
 
 if __name__ == "__main__":
