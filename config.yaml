@@ -56,6 +56,17 @@ stores:
     link_regex: "/product/"
     products: ["https://mdcomputers.in/product/sony-playstation-gift-card-inr-1000"]
 
+  # One product page lists every face value; its JSON-LD has one Offer (with availability) per value,
+  # so split_variants turns it into one listing per face value. Server-rendered: plain HTTP is enough.
+  - name: Stan Shop
+    type: page
+    render: false
+    interval: 45
+    split_variants: true
+    variant_face_regex: "Coupon Worth ₹\\s*([\\d,]+)"
+    products:
+      - "https://www.stanshop.co/playstation-psn-gift-card-in-india"
+
   - name: Flipkart
     type: page
     render: auto
@@ -103,7 +114,6 @@ stores:
   - {name: 99Gift,       enabled: false, type: page, products: [], note: "redirects automated visits to /unauthorized"}
   - {name: Digistore,    enabled: false, type: page, products: [], note: "answered 429 Too Many Requests"}
   - {name: Blue Vault,   enabled: false, type: page, products: [], note: "gift-card pages 404 when opened directly"}
-  - {name: Stan Shop,    enabled: false, type: page, products: [], note: "search found no PSN India product"}
   - {name: E Mart Games, enabled: false, type: page, products: [], note: "blank page"}
   - {name: Venus Games,  enabled: false, type: page, products: [], note: "blank page"}
   - {name: Blinkit,      enabled: false, type: page, products: [], note: "stock depends on delivery location; app-first"}
