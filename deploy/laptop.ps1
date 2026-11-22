@@ -3,7 +3,8 @@ psn-watch laptop helper (Windows).
 
 Watches only the stores that refuse traffic from cloud servers (Amazon, Croma, Play-Asia, MD Computers,
 Sheenu, KRG Kart, E2Z, Stan Shop). The Azure VM covers every other store. Sends restock alerts only,
-to the same ntfy topic as the VM, and follows the wishlist saved on achyuthus.dev/psn.
+to the same ntfy topic as the VM, follows the wishlist saved on achyuthus.dev/psn, and sends its
+readings to the VM every minute so they show on the dashboard.
 
 Install or update (PowerShell, no admin needed):
   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/Achyuth762/psn-watch/main/deploy/laptop.ps1))) -Topic <your-ntfy-topic>
@@ -113,6 +114,8 @@ if ($LASTEXITCODE) { throw "playwright install failed" }
 NTFY_TOPIC=$Topic
 # follow the wishlist saved on the dashboard
 PSN_PREFS_URL=https://achyuthus.dev/psn/api/status
+# show these stores on the dashboard too (signed with a key derived from the topic)
+PSN_PUSH_URL=https://achyuthus.dev/psn/api/ingest
 "@ | Set-Content -Path $EnvFile -Encoding UTF8
 
 # ------------------------------------------------------------------ one check now, so you see it works from home
