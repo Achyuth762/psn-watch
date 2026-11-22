@@ -398,3 +398,41 @@ def test_settings_endpoints_need_the_key(tmp_path, monkeypatch):
         assert post("/psn/api/key-check", key="s3cret-key")[0] == 429                           # locked out
     finally:
         srv.shutdown()
+
+
+# ------------------------------------------------------------------ one page, several face values (Stan Shop)
+STAN_LD = {"@context": "https://schema.org", "@type": "Product", "name": "Playstation (PSN) Gift Card - INDIA", "sku": "1304",
+           "offers": {"@type": "AggregateOffer", "priceCurrency": "INR", "offerCount": 4, "lowPrice": "1000", "highPrice": "4000",
+                      "offers": [{"@type": "Offer", "sku": str(i + 1), "url": "https://www.stanshop.co/playstation-psn-gift-card-in-india",
+                                  "priceCurrency": "INR", "price": str(v),
+                                  "availability": "https://schema.org/" + ("InStock" if v == 2000 else "OutOfStock")}
+                                 for i, v in enumerate((1000, 2000, 3000, 4000))]}}
+
+
+def _stan_html(faces=(1000, 2000, 3000, 4000)):
+    import json as _j
+    ld = f'<script type="application/ld+json">{_j.dumps(STAN_LD)}</script>'
+    cards = "".join(f"<div>₹{v:,} <span>Coupon Worth ₹{v}</span> SOLD OUT</div>" for v in faces)
+    return f"<html><head><title>Buy PlayStation Gift Card India</title>{ld}{ld}</head><body>{cards}</body></html>"
+
+
+def test_split_variants_one_offer_per_face_value():
+    from psnwatch.adapters.page import check
+    cfg = {"name": "Stan Shop", "type": "page", "render": False, "split_variants": True,
+           "variant_face_regex": r"Coupon Worth ₹\s*([\d,]+)",
+           "products": ["https://www.stanshop.co/playstation-psn-gift-card-in-india"]}
+
+    class F:
+        def get_html(self, url, render=False):
+            return _stan_html()
+    offers = check(cfg, F())
+    assert [(o.denomination, o.status, o.price) for o in offers] == [
+        (1000, OUT, 1000), (2000, IN, 2000), (3000, OUT, 3000), (4000, OUT, 4000)]     # deduped, in page order
+    assert len({o.key for o in offers}) == 4
+    assert offers[1].url.endswith("#2000") and offers[1].title.endswith("Rs 2,000")
+
+
+def test_split_variants_falls_back_to_price_when_text_doesnt_line_up():
+    from psnwatch.adapters.page import parse_variants
+    offers = parse_variants(_stan_html(faces=(1000,)), "https://s/p", {"name": "S", "variant_face_regex": r"Coupon Worth ₹\s*([\d,]+)"})
+    assert [o.denomination for o in offers] == [1000, 2000, 3000, 4000]
