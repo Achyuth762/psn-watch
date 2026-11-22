@@ -75,8 +75,12 @@ class Health:
 
 
 class Engine:
-    def __init__(self, cfg: dict, stores: list[dict], fetcher: Fetcher, db: DB, send_alerts: bool = True):
+    def __init__(self, cfg: dict, stores: list[dict], fetcher: Fetcher, db: DB, send_alerts: bool = True,
+                 restock_only: bool = False):
         self.cfg, self.stores, self.f, self.db = cfg, stores, fetcher, db
+        # restock_only: the laptop helper. It sleeps when the lid closes, so store-down, heartbeat and
+        # startup messages would be noise (and duplicate the VM's); only restocks are sent.
+        self.restock_only = restock_only
         s = cfg.get("settings", {})
         self.remind_min = s.get("remind_every_min", 10)
         self.max_markup = s.get("max_markup_pct")
@@ -134,9 +138,27 @@ class Engine:
                         store["name"], ", ".join(o.title for o in alerts))
             self.dispatch(alerts)
 
+    def current_prefs(self) -> dict:
+        """The wishlist. With PSN_PREFS_URL set (the laptop helper) it follows the dashboard's saved list,
+        read from the public status API at most every 5 min; on any error the last good copy is used."""
+        url = os.getenv("PSN_PREFS_URL")
+        if not url:
+            return prefs.load(self.db)
+        now = time.time()
+        if now - getattr(self, "_prefs_at", 0) > 300:
+            try:
+                import httpx
+                p = prefs.clean(httpx.get(url, timeout=10, follow_redirects=True).json()["prefs"])
+                prefs.save(self.db, p)                  # remembered for when the dashboard can't be reached
+                self._prefs_at = now
+            except Exception as e:  # noqa: BLE001
+                log.warning("couldn't read the wishlist from %s (%s); using the saved copy", url, e)
+                self._prefs_at = now - 240              # retry in a minute
+        return prefs.load(self.db)
+
     def dispatch(self, alerts: list[Offer]):
         """Wishlist matches get the loud alert (repeated while in stock); the rest follow prefs['others']."""
-        p = prefs.load(self.db)
+        p = self.current_prefs()
         wanted = [o for o in alerts if prefs.matches(p, o.denomination, o.markup_pct)]
         other = [o for o in alerts if o not in wanted]
         if wanted:
@@ -185,6 +207,9 @@ class Engine:
     def _send(self, fn, *args):
         if not self.send_alerts:
             return
+        if self.restock_only and fn not in (notify.restock, notify.restock_quiet):
+            log.info("restock-only mode, not sent: %s", args[0] if args and isinstance(args[0], str) else fn.__name__)
+            return
         threading.Thread(target=fn, args=args, daemon=True, name="alert").start()
 
     # ------------------------------------------------------------------ worker loop
@@ -218,8 +243,12 @@ class Engine:
         for st in self.stores:
             threading.Thread(target=self._worker, args=(st,), daemon=True, name=f"store:{st['name']}").start()
         last_ping = last_report = 0.0
+        last_loop = time.time()
         while not self.stop.is_set():
             now = time.time()
+            if now - last_loop > 120:            # the loop sleeps 15 s: a big gap means the machine slept
+                self._resumed(now, now - last_loop)
+            last_loop = now
             stalled = self._stalled(now)
             if stalled:
                 log.critical("watchdog: %s stalled — exiting so systemd restarts us", stalled)
@@ -237,6 +266,14 @@ class Engine:
                 last_report = now
             self._maybe_heartbeat()
             self.stop.wait(15)
+
+    def _resumed(self, now: float, gap: float):
+        """After sleep/suspend every worker looks stalled; that's not a hang, so reset the clocks."""
+        log.info("resumed after %.0f min asleep; carrying on", gap / 60)
+        for h in self.health.values():
+            h.last_beat = now
+        if self.f.browser:
+            self.f.browser.last_beat = now
 
     def _stalled(self, now: float) -> str | None:
         for h in self.health.values():
