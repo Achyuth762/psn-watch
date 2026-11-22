@@ -436,3 +436,53 @@ def test_split_variants_falls_back_to_price_when_text_doesnt_line_up():
     from psnwatch.adapters.page import parse_variants
     offers = parse_variants(_stan_html(faces=(1000,)), "https://s/p", {"name": "S", "variant_face_regex": r"Coupon Worth ₹\s*([\d,]+)"})
     assert [o.denomination for o in offers] == [1000, 2000, 3000, 4000]
+
+
+# ------------------------------------------------------------------ laptop helper
+def test_laptop_mode_picks_blocked_stores_and_sends_only_restocks(tmp_path, monkeypatch):
+    import watch
+    cfg = {"stores": [{"name": "A", "type": "woocommerce", "url": "https://a"},
+                      {"name": "B", "type": "woocommerce", "url": "https://b", "blocks_cloud": True},
+                      {"name": "C", "type": "page", "products": [], "blocks_cloud": True, "enabled": False}]}
+    monkeypatch.delenv("PSN_ON_VM", raising=False)
+    assert [s["name"] for s in watch.pick_stores(cfg, None, True, laptop=True)] == ["B"]
+    st = cfg["stores"][1]
+    e = make_engine(tmp_path, [st], Rec(lambda u, p: []))
+    del e._send                                    # use the engine's real _send (make_engine stubs it)
+    e.send_alerts, e.restock_only = True, True
+    real = []
+    monkeypatch.setattr(notify, "restock", lambda offers: real.append("restock"))
+    monkeypatch.setattr(notify, "send", lambda *a, **k: real.append("send"))
+    e.process(st, [Offer("B", "PSN Rs 1000", "https://b/1", IN, 1000, 1000)], None)
+    e._startup_notice()                            # would be a "started" message on the VM
+    time.sleep(0.2)                                # alerts go out on threads
+    assert real == ["restock"]
+
+
+def test_laptop_follows_dashboard_wishlist(tmp_path, monkeypatch):
+    import httpx
+    from psnwatch import prefs
+    st = {"name": "B", "type": "woocommerce", "url": "https://b"}
+    e = make_engine(tmp_path, [st], Rec(lambda u, p: []))
+    monkeypatch.setenv("PSN_PREFS_URL", "https://example.test/psn/api/status")
+
+    class R:
+        def json(self):
+            return {"prefs": {"want": [2000], "max_markup": 5, "others": "off"}}
+    monkeypatch.setattr(httpx, "get", lambda *a, **k: R())
+    assert e.current_prefs()["want"] == [2000]
+    monkeypatch.setattr(httpx, "get", lambda *a, **k: (_ for _ in ()).throw(httpx.ConnectError("down")))
+    e._prefs_at = 0
+    assert e.current_prefs()["want"] == [2000]                   # dashboard unreachable -> last good copy
+    e.process(st, [Offer("B", "PSN Rs 1000", "https://b/1", IN, 1000, 1000)], None)
+    assert not e.sent                                             # 1000 isn't on the list and others are off
+
+
+def test_waking_from_sleep_is_not_a_stall(tmp_path):
+    st = {"name": "W", "type": "woocommerce", "url": "https://w"}
+    e = make_engine(tmp_path, [st], Rec(lambda u, p: []))
+    now = time.time()
+    e.health["W"].last_beat = now - 6 * 3600                     # laptop lid closed for 6 hours
+    assert e._stalled(now)
+    e._resumed(now, 6 * 3600)
+    assert e._stalled(now) is None
